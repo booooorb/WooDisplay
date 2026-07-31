@@ -25,6 +25,8 @@ temp/
 *.tmp
 *.log
 *.png~
+__pycache__/
+*.py[cod]
 
 # Local credentials and environment configuration
 .env

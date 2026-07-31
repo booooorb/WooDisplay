@@ -95,7 +95,11 @@ def load_products() -> list[dict[str, Any]]:
                 "name": clean(row.get("Name")) or "Untitled product",
                 "sku": clean(row.get("SKU")),
                 "price": price_label,
-                "category": categories[0] if categories else "Uncategorised",
+                "category": (
+                    categories[0].split(">")[0].strip()
+                    if categories
+                    else "Uncategorised"
+                ),
                 "in_stock": in_stock,
                 "image_url": image_urls[0] if image_urls else None,
             }
@@ -288,11 +292,21 @@ def draw_product_page(
     images: dict[str, Path],
     page_number: int,
     page_count: int,
+    category: str,
+    first_product: int,
 ) -> None:
     page_width, page_height = letter
     pdf.setFillColor(white)
     pdf.rect(0, 0, page_width, page_height, stroke=0, fill=1)
-    draw_text(pdf, "Product Catalogue", 30, 23, "Helvetica-Bold", 17, HexColor("#181A1F"))
+    draw_text(
+        pdf,
+        f"Product Catalogue / {category}",
+        30,
+        23,
+        "Helvetica-Bold",
+        17,
+        HexColor("#181A1F"),
+    )
     pdf.setFillColor(COBALT)
     pdf.roundRect(547, page_height - 36, 35, 5, 2.5, stroke=0, fill=1)
 
@@ -319,7 +333,6 @@ def draw_product_page(
             card_height,
         )
 
-    first_product = (page_number - 1) * 12 + 1 if products else 0
     last_product = first_product + len(products) - 1 if products else 0
     draw_text(pdf, f"{first_product}-{last_product}", 30, 774, "Helvetica-Bold", 8.5, SECONDARY)
     footer = f"{page_number} / {page_count}"
@@ -338,14 +351,29 @@ def create_pdf() -> None:
     pdf = canvas.Canvas(str(temporary_output), pagesize=letter, pageCompression=1)
     pdf.setTitle("Product Catalogue")
     pdf.setAuthor("WooDisplay")
-    page_count = max(1, math.ceil(len(products) / 12))
-    for page_index in range(page_count):
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for product in products:
+        groups.setdefault(product["category"], []).append(product)
+
+    pages: list[tuple[str, list[dict[str, Any]], int]] = []
+    first_product = 1
+    for category in sorted(groups, key=str.casefold):
+        category_products = sorted(groups[category], key=lambda item: item["name"].casefold())
+        for start in range(0, len(category_products), 12):
+            page_products = category_products[start : start + 12]
+            pages.append((category, page_products, first_product + start))
+        first_product += len(category_products)
+
+    page_count = max(1, len(pages))
+    for page_index, (category, page_products, first_number) in enumerate(pages):
         draw_product_page(
             pdf,
-            products[page_index * 12 : (page_index + 1) * 12],
+            page_products,
             images,
             page_index + 1,
             page_count,
+            category,
+            first_number,
         )
     pdf.save()
     temporary_output.replace(OUTPUT_PATH)

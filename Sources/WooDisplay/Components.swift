@@ -5,17 +5,16 @@ enum AppPalette {
     static let inspector = Color(red: 0.975, green: 0.978, blue: 0.984)
     static let border = Color.black.opacity(0.12)
     static let secondaryText = Color(red: 0.38, green: 0.41, blue: 0.46)
-    static let imageBackground = Color.black.opacity(0.035)
 }
 
 struct ProductImage: View {
     let url: URL?
     var contentMode: ContentMode = .fit
+    var background = Color.black.opacity(0.035)
 
     var body: some View {
         ZStack {
-            AppPalette.imageBackground
-
+            background
             if let url {
                 AsyncImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.18))) { phase in
                     switch phase {
@@ -60,17 +59,19 @@ struct PrimaryActionButtonStyle: ButtonStyle {
 }
 
 struct PDFPagePreview: View {
-    let products: [Product]
+    let page: CataloguePage
     let pageNumber: Int
     let pageCount: Int
     let settings: CatalogueSettingsSnapshot
+    var selectedProductID: String?
+    var onSelectProduct: ((Product) -> Void)?
 
     private let pageSize = CGSize(width: 612, height: 792)
 
     var body: some View {
         VStack(spacing: 0) {
             if settings.showPageHeader {
-                PreviewPageHeader(settings: settings)
+                PreviewPageHeader(settings: settings, category: page.category)
                     .frame(height: 58)
                     .padding(.horizontal, 30)
             } else {
@@ -84,7 +85,7 @@ struct PDFPagePreview: View {
             Spacer(minLength: 0)
 
             HStack {
-                Text("\(products.isEmpty ? 0 : ((pageNumber - 1) * settings.productsPerPage) + 1)–\(min(pageNumber * settings.productsPerPage, ((pageCount - 1) * settings.productsPerPage) + products.count))")
+                Text("\(page.firstProductNumber)-\(page.lastProductNumber)")
                 Spacer()
                 Text("\(pageNumber) / \(pageCount)")
             }
@@ -100,19 +101,29 @@ struct PDFPagePreview: View {
 
     private var productRows: some View {
         GeometryReader { geometry in
-            let gap = settings.layoutStyle == .poster ? 8.0 : 10.0
-            let rowGap = settings.layoutStyle == .editorial ? 14.0 : gap
+            let gap = settings.spacing.gap
             let cellWidth = (geometry.size.width - (CGFloat(settings.columns - 1) * gap)) / CGFloat(settings.columns)
-            let cellHeight = (geometry.size.height - (CGFloat(settings.rows - 1) * rowGap)) / CGFloat(settings.rows)
+            let cellHeight = (geometry.size.height - (CGFloat(settings.rows - 1) * gap)) / CGFloat(settings.rows)
 
-            VStack(spacing: rowGap) {
+            VStack(spacing: gap) {
                 ForEach(0..<settings.rows, id: \.self) { row in
                     HStack(spacing: gap) {
                         ForEach(0..<settings.columns, id: \.self) { column in
                             let index = row * settings.columns + column
-                            if index < products.count {
-                                PreviewProductCell(product: products[index], settings: settings)
-                                    .frame(width: cellWidth, height: cellHeight)
+                            if index < page.products.count {
+                                let product = page.products[index]
+                                Button {
+                                    onSelectProduct?(product)
+                                } label: {
+                                    PreviewProductCell(
+                                        product: product,
+                                        settings: settings,
+                                        isSelected: selectedProductID == product.id
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .help("Product options")
+                                .frame(width: cellWidth, height: cellHeight)
                             } else {
                                 Color.clear.frame(width: cellWidth, height: cellHeight)
                             }
@@ -124,37 +135,107 @@ struct PDFPagePreview: View {
     }
 }
 
+struct ProductOmitPopover: View {
+    let product: Product
+    let settings: CatalogueSettingsSnapshot
+    let omit: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                ProductImage(
+                    url: product.primaryImageURL,
+                    background: settings.imageBackgroundColor.swiftUIColor
+                )
+                .frame(width: 82, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(product.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(3)
+                    Text(product.priceLabel)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(settings.priceColor.swiftUIColor)
+                    Text(product.catalogueCategory)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button(action: omit) {
+                Label("Omit from catalogue", systemImage: "eye.slash")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(Color.red)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 27)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .stroke(Color.red.opacity(0.72))
+                    }
+            }
+            .buttonStyle(.plain)
+
+            Button("Cancel", action: cancel)
+                .buttonStyle(.plain)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(width: 270)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.black.opacity(0.12))
+        }
+        .shadow(color: .black.opacity(0.22), radius: 18, y: 8)
+    }
+}
+
 private struct PreviewPageHeader: View {
     let settings: CatalogueSettingsSnapshot
+    let category: String?
+
+    private var title: String {
+        guard let category else { return settings.catalogueTitle }
+        return "\(settings.catalogueTitle) / \(category)"
+    }
 
     var body: some View {
         switch settings.layoutStyle {
         case .studio:
-            HStack(alignment: .center) {
-                Text(settings.catalogueTitle)
+            HStack {
+                Text(title)
                     .font(settings.font.swiftUIFont(size: 17, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                 Spacer()
-                Capsule()
-                    .fill(settings.accent.swiftUIColor)
-                    .frame(width: 35, height: 5)
+                Capsule().fill(settings.accent.swiftUIColor).frame(width: 35, height: 5)
             }
             .foregroundStyle(settings.textColor.swiftUIColor)
             .overlay(alignment: .bottom) {
                 Rectangle().fill(settings.textColor.swiftUIColor.opacity(0.14)).frame(height: 1)
             }
         case .editorial:
-            Text(settings.catalogueTitle)
+            Text(title)
                 .font(settings.font.swiftUIFont(size: 18, weight: .semibold))
                 .foregroundStyle(settings.textColor.swiftUIColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .bottom) {
                     Rectangle().fill(settings.accent.swiftUIColor).frame(width: 48, height: 2)
                 }
         case .poster:
             HStack {
-                Text(settings.catalogueTitle.uppercased())
+                Text(title.uppercased())
                     .font(settings.font.swiftUIFont(size: 21, weight: .bold))
                     .tracking(0.4)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
                 Spacer()
                 Text("CATALOGUE")
                     .font(.system(size: 8, weight: .black))
@@ -169,8 +250,10 @@ private struct PreviewPageHeader: View {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(settings.accent.swiftUIColor)
                     .frame(width: 10, height: 28)
-                Text(settings.catalogueTitle)
+                Text(title)
                     .font(settings.font.swiftUIFont(size: 16, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                 Spacer()
             }
             .foregroundStyle(settings.textColor.swiftUIColor)
@@ -181,15 +264,20 @@ private struct PreviewPageHeader: View {
 private struct PreviewProductCell: View {
     let product: Product
     let settings: CatalogueSettingsSnapshot
+    let isSelected: Bool
 
     var body: some View {
-        VStack(alignment: settings.layoutStyle == .editorial ? .center : .leading, spacing: 0) {
+        VStack(alignment: stackAlignment, spacing: 0) {
             if settings.showImage {
-                ProductImage(url: product.primaryImageURL)
-                    .frame(maxWidth: .infinity)
-                    .frame(maxHeight: .infinity)
-                    .clipped()
-                    .padding(imageInset)
+                ProductImage(
+                    url: product.primaryImageURL,
+                    contentMode: settings.imageFit == .fill ? .fill : .fit,
+                    background: settings.imageBackgroundColor.swiftUIColor
+                )
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: .infinity)
+                .clipped()
+                .padding(imageInset)
             }
 
             productText
@@ -197,26 +285,26 @@ private struct PreviewProductCell: View {
                 .padding(.top, settings.showImage ? 6 : 10)
                 .padding(.bottom, 9)
         }
-        .background(cellBackground)
+        .background(settings.cardColor.swiftUIColor)
         .clipShape(cellShape)
         .overlay { cellBorder }
     }
 
     private var productText: some View {
-        VStack(alignment: settings.layoutStyle == .editorial ? .center : .leading, spacing: 3) {
+        VStack(alignment: stackAlignment, spacing: 3) {
             if settings.showName {
                 Text(product.name)
                     .font(settings.font.swiftUIFont(size: nameSize, weight: .semibold))
                     .foregroundStyle(settings.textColor.swiftUIColor)
                     .lineLimit(2)
-                    .multilineTextAlignment(settings.layoutStyle == .editorial ? .center : .leading)
-                    .frame(maxWidth: .infinity, alignment: settings.layoutStyle == .editorial ? .center : .leading)
+                    .multilineTextAlignment(textAlignment)
+                    .frame(maxWidth: .infinity, alignment: frameAlignment)
             }
 
             if settings.showPrice {
                 Text(product.priceLabel)
                     .font(settings.font.swiftUIFont(size: priceSize, weight: .bold))
-                    .foregroundStyle(priceColor)
+                    .foregroundStyle(settings.priceColor.swiftUIColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
@@ -227,24 +315,16 @@ private struct PreviewProductCell: View {
 
     @ViewBuilder
     private var optionalMetadata: some View {
-        if settings.showSKU && !product.sku.isEmpty {
-            metadata("SKU \(product.sku)")
-        }
-        if settings.showCategory {
-            metadata(product.primaryCategory)
-        }
-        if settings.showStock {
-            metadata(product.stockLabel)
-        }
-        if settings.showBrand && !product.brand.isEmpty {
-            metadata(product.brand)
-        }
+        if settings.showSKU && !product.sku.isEmpty { metadata("SKU \(product.sku)") }
+        if settings.showCategory { metadata(product.catalogueCategory) }
+        if settings.showStock { metadata(product.stockLabel) }
+        if settings.showBrand && !product.brand.isEmpty { metadata(product.brand) }
         if settings.showDescription {
             Text(product.cleanDescription)
                 .font(settings.font.swiftUIFont(size: 7.5))
                 .foregroundStyle(settings.textColor.swiftUIColor.opacity(0.65))
                 .lineLimit(2)
-                .multilineTextAlignment(settings.layoutStyle == .editorial ? .center : .leading)
+                .multilineTextAlignment(textAlignment)
         }
     }
 
@@ -260,37 +340,45 @@ private struct PreviewProductCell: View {
     private var textInset: CGFloat { settings.layoutStyle == .poster ? 8 : 6 }
     private var imageInset: CGFloat { settings.layoutStyle == .gallery ? 8 : 0 }
 
-    private var priceColor: Color {
-        settings.layoutStyle == .poster ? settings.textColor.swiftUIColor : settings.accent.swiftUIColor
+    private var cellShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: settings.cornerStyle.radius, style: .continuous)
     }
 
-    @ViewBuilder
-    private var cellBackground: some View {
-        switch settings.layoutStyle {
-        case .studio, .editorial:
-            Color.clear
-        case .poster:
-            settings.accent.swiftUIColor.opacity(0.12)
-        case .gallery:
-            Color.white.opacity(0.88)
+    private var stackAlignment: HorizontalAlignment {
+        switch settings.textAlignment {
+        case .leading: .leading
+        case .center: .center
+        case .trailing: .trailing
         }
     }
 
-    private var cellShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: settings.layoutStyle == .gallery ? 8 : 0, style: .continuous)
+    private var textAlignment: TextAlignment {
+        switch settings.textAlignment {
+        case .leading: .leading
+        case .center: .center
+        case .trailing: .trailing
+        }
+    }
+
+    private var frameAlignment: Alignment {
+        switch settings.textAlignment {
+        case .leading: .leading
+        case .center: .center
+        case .trailing: .trailing
+        }
     }
 
     @ViewBuilder
     private var cellBorder: some View {
-        switch settings.layoutStyle {
-        case .studio:
-            cellShape.stroke(settings.textColor.swiftUIColor.opacity(0.15), lineWidth: 0.75)
-        case .editorial:
-            cellShape.stroke(settings.accent.swiftUIColor.opacity(0.28), lineWidth: 0.7)
-        case .poster:
-            cellShape.stroke(settings.textColor.swiftUIColor, lineWidth: 2)
-        case .gallery:
-            cellShape.stroke(settings.accent.swiftUIColor.opacity(0.18), lineWidth: 0.75)
+        if settings.borderStyle.width > 0 {
+            cellShape.stroke(
+                isSelected
+                    ? settings.accent.swiftUIColor
+                    : settings.textColor.swiftUIColor.opacity(settings.borderStyle.opacity),
+                lineWidth: isSelected ? max(2, settings.borderStyle.width) : settings.borderStyle.width
+            )
+        } else if isSelected {
+            cellShape.stroke(settings.accent.swiftUIColor, lineWidth: 2)
         }
     }
 }

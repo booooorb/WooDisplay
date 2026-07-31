@@ -57,6 +57,11 @@ struct Product: Identifiable, Hashable, Sendable {
         categories.first ?? "Uncategorised"
     }
 
+    var catalogueCategory: String {
+        primaryCategory.components(separatedBy: ">").first?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? primaryCategory
+    }
+
     var cleanDescription: String {
         let source = shortDescription.isEmpty ? description : shortDescription
         let stripped = source

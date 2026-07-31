@@ -145,18 +145,14 @@ enum PDFCatalogueExporter {
             throw PDFExportError.couldNotCreateDocument
         }
 
-        let pageCount = max(1, Int(ceil(Double(products.count) / Double(settings.productsPerPage))))
-        for pageIndex in 0..<pageCount {
-            let start = pageIndex * settings.productsPerPage
-            let end = min(start + settings.productsPerPage, products.count)
-            let pageProducts = start < products.count ? Array(products[start..<end]) : []
+        let pages = CataloguePaginator.pages(products: products, settings: settings)
+        for (pageIndex, page) in pages.enumerated() {
             drawProductPage(
                 context: context,
-                products: pageProducts,
+                page: page,
                 imageData: imageData,
                 pageNumber: pageIndex + 1,
-                pageCount: pageCount,
-                totalProducts: products.count,
+                pageCount: pages.count,
                 settings: settings
             )
         }
@@ -166,36 +162,34 @@ enum PDFCatalogueExporter {
     @MainActor
     private static func drawProductPage(
         context: CGContext,
-        products: [Product],
+        page: CataloguePage,
         imageData: [String: Data],
         pageNumber: Int,
         pageCount: Int,
-        totalProducts: Int,
         settings: CatalogueSettingsSnapshot
     ) {
         beginPage(context, pageColor: settings.pageColor.nsColor)
 
         let headerHeight: CGFloat = settings.showPageHeader ? 58 : 25
         if settings.showPageHeader {
-            drawHeader(settings: settings)
+            drawHeader(settings: settings, category: page.category)
         }
 
         let margin: CGFloat = 30
         let footerHeight: CGFloat = 24
         let bottomPadding: CGFloat = 11
-        let gap: CGFloat = settings.layoutStyle == .poster ? 8 : 10
-        let rowGap: CGFloat = settings.layoutStyle == .editorial ? 14 : gap
+        let gap = settings.spacing.gap
         let gridWidth = pageSize.width - margin * 2
         let gridHeight = pageSize.height - headerHeight - footerHeight - bottomPadding
         let cellWidth = (gridWidth - CGFloat(settings.columns - 1) * gap) / CGFloat(settings.columns)
-        let cellHeight = (gridHeight - CGFloat(settings.rows - 1) * rowGap) / CGFloat(settings.rows)
+        let cellHeight = (gridHeight - CGFloat(settings.rows - 1) * gap) / CGFloat(settings.rows)
 
-        for (index, product) in products.enumerated() {
+        for (index, product) in page.products.enumerated() {
             let column = index % settings.columns
             let row = index / settings.columns
             let rect = CGRect(
                 x: margin + CGFloat(column) * (cellWidth + gap),
-                y: headerHeight + CGFloat(row) * (cellHeight + rowGap),
+                y: headerHeight + CGFloat(row) * (cellHeight + gap),
                 width: cellWidth,
                 height: cellHeight
             )
@@ -207,10 +201,8 @@ enum PDFCatalogueExporter {
             )
         }
 
-        let firstProduct = products.isEmpty ? 0 : ((pageNumber - 1) * settings.productsPerPage) + 1
-        let lastProduct = min(pageNumber * settings.productsPerPage, totalProducts)
         drawText(
-            "\(firstProduct)–\(lastProduct)",
+            "\(page.firstProductNumber)-\(page.lastProductNumber)",
             in: CGRect(x: margin, y: pageSize.height - 18, width: 120, height: 11),
             font: settings.font.nsFont(size: 8.5, weight: .medium),
             color: settings.textColor.nsColor.withAlphaComponent(0.55)
@@ -226,14 +218,15 @@ enum PDFCatalogueExporter {
     }
 
     @MainActor
-    private static func drawHeader(settings: CatalogueSettingsSnapshot) {
+    private static func drawHeader(settings: CatalogueSettingsSnapshot, category: String?) {
         let textColor = settings.textColor.nsColor
         let accent = settings.accent.nsColor
+        let title = category.map { "\(settings.catalogueTitle) / \($0)" } ?? settings.catalogueTitle
 
         switch settings.layoutStyle {
         case .studio:
             drawText(
-                settings.catalogueTitle,
+                title,
                 in: CGRect(x: 30, y: 23, width: 400, height: 24),
                 font: settings.font.nsFont(size: 17, weight: .bold),
                 color: textColor
@@ -245,7 +238,7 @@ enum PDFCatalogueExporter {
 
         case .editorial:
             drawText(
-                settings.catalogueTitle,
+                title,
                 in: CGRect(x: 106, y: 21, width: 400, height: 25),
                 font: settings.font.nsFont(size: 18, weight: .semibold),
                 color: textColor,
@@ -256,7 +249,7 @@ enum PDFCatalogueExporter {
 
         case .poster:
             drawText(
-                settings.catalogueTitle.uppercased(),
+                title.uppercased(),
                 in: CGRect(x: 30, y: 18, width: 425, height: 29),
                 font: settings.font.nsFont(size: 21, weight: .bold),
                 color: textColor,
@@ -277,7 +270,7 @@ enum PDFCatalogueExporter {
             accent.setFill()
             NSBezierPath(roundedRect: CGRect(x: 30, y: 17, width: 10, height: 28), xRadius: 2, yRadius: 2).fill()
             drawText(
-                settings.catalogueTitle,
+                title,
                 in: CGRect(x: 50, y: 23, width: 430, height: 22),
                 font: settings.font.nsFont(size: 16, weight: .semibold),
                 color: textColor
@@ -292,38 +285,17 @@ enum PDFCatalogueExporter {
         imageData: Data?,
         settings: CatalogueSettingsSnapshot
     ) {
-        let radius: CGFloat = settings.layoutStyle == .gallery ? 8 : 0
+        let radius = settings.cornerStyle.radius
         let shape = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
         let textColor = settings.textColor.nsColor
-        let accent = settings.accent.nsColor
+        settings.cardColor.nsColor.setFill()
+        shape.fill()
 
-        switch settings.layoutStyle {
-        case .studio, .editorial:
-            NSColor.clear.setFill()
-            shape.fill()
-        case .poster:
-            accent.withAlphaComponent(0.12).setFill()
-            shape.fill()
-        case .gallery:
-            NSColor.white.withAlphaComponent(0.88).setFill()
-            shape.fill()
+        if settings.borderStyle.width > 0 {
+            textColor.withAlphaComponent(settings.borderStyle.opacity).setStroke()
+            shape.lineWidth = settings.borderStyle.width
+            shape.stroke()
         }
-
-        switch settings.layoutStyle {
-        case .studio:
-            textColor.withAlphaComponent(0.15).setStroke()
-            shape.lineWidth = 0.75
-        case .editorial:
-            accent.withAlphaComponent(0.28).setStroke()
-            shape.lineWidth = 0.7
-        case .poster:
-            textColor.setStroke()
-            shape.lineWidth = 2
-        case .gallery:
-            accent.withAlphaComponent(0.18).setStroke()
-            shape.lineWidth = 0.75
-        }
-        shape.stroke()
 
         let metadataCount = [
             settings.showSKU && !product.sku.isEmpty,
@@ -340,7 +312,7 @@ enum PDFCatalogueExporter {
 
         var textTop = rect.minY + 9
         if settings.showImage {
-            let inset: CGFloat = settings.layoutStyle == .gallery ? 8 : 0
+            let inset: CGFloat = settings.cornerStyle == .rounded ? 8 : 0
             let maximumImageHeight = max(24, rect.height - reservedTextHeight)
             let preferredImageHeight = rect.height * (settings.productsPerPage == 6 ? 0.70 : 0.66)
             let imageHeight = min(preferredImageHeight, maximumImageHeight)
@@ -350,11 +322,20 @@ enum PDFCatalogueExporter {
                 width: rect.width - inset * 2,
                 height: max(20, imageHeight - inset)
             )
-            textColor.withAlphaComponent(0.035).setFill()
-            NSBezierPath(roundedRect: imageRect, xRadius: settings.layoutStyle == .gallery ? 5 : 0, yRadius: settings.layoutStyle == .gallery ? 5 : 0).fill()
+            settings.imageBackgroundColor.nsColor.setFill()
+            NSBezierPath(
+                roundedRect: imageRect,
+                xRadius: settings.cornerStyle == .rounded ? 5 : 0,
+                yRadius: settings.cornerStyle == .rounded ? 5 : 0
+            ).fill()
 
             if let imageData, let image = NSImage(data: imageData) {
-                let fitted = aspectFit(image.size, inside: imageRect.insetBy(dx: 4, dy: 4))
+                let target = imageRect.insetBy(dx: 4, dy: 4)
+                let fitted = settings.imageFit == .fill
+                    ? aspectFill(image.size, inside: target)
+                    : aspectFit(image.size, inside: target)
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: imageRect).addClip()
                 image.draw(
                     in: fitted,
                     from: .zero,
@@ -363,6 +344,7 @@ enum PDFCatalogueExporter {
                     respectFlipped: true,
                     hints: nil
                 )
+                NSGraphicsContext.restoreGraphicsState()
             } else {
                 drawText(
                     "No image",
@@ -382,7 +364,12 @@ enum PDFCatalogueExporter {
             width: rect.width - horizontalInset * 2,
             height: rect.maxY - textTop - 7
         )
-        let alignment: NSTextAlignment = settings.layoutStyle == .editorial ? .center : .left
+        let alignment: NSTextAlignment
+        switch settings.textAlignment {
+        case .leading: alignment = .left
+        case .center: alignment = .center
+        case .trailing: alignment = .right
+        }
         var cursor = textRect.minY
         let nameSize: CGFloat = settings.productsPerPage == 16 ? 8.5 : 10
         let priceSize: CGFloat = settings.productsPerPage == 16 ? 8.5 : 10.5
@@ -405,7 +392,7 @@ enum PDFCatalogueExporter {
                 product.priceLabel,
                 in: CGRect(x: textRect.minX, y: cursor, width: textRect.width, height: priceHeight),
                 font: settings.font.nsFont(size: priceSize, weight: .bold),
-                color: settings.layoutStyle == .poster ? textColor : accent,
+                color: settings.priceColor.nsColor,
                 alignment: alignment,
                 truncation: .byTruncatingTail
             )
@@ -492,6 +479,18 @@ enum PDFCatalogueExporter {
     private static func aspectFit(_ source: CGSize, inside rect: CGRect) -> CGRect {
         guard source.width > 0, source.height > 0 else { return rect }
         let scale = min(rect.width / source.width, rect.height / source.height)
+        let size = CGSize(width: source.width * scale, height: source.height * scale)
+        return CGRect(
+            x: rect.midX - size.width / 2,
+            y: rect.midY - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+    }
+
+    private static func aspectFill(_ source: CGSize, inside rect: CGRect) -> CGRect {
+        guard source.width > 0, source.height > 0 else { return rect }
+        let scale = max(rect.width / source.width, rect.height / source.height)
         let size = CGSize(width: source.width * scale, height: source.height * scale)
         return CGRect(
             x: rect.midX - size.width / 2,

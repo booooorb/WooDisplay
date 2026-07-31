@@ -20,10 +20,25 @@ final class CatalogueStore: ObservableObject {
     @Published var showPageHeader = true
     @Published var catalogueTitle = "Product Catalogue"
 
+    @Published var groupByCategory = true
+    @Published var sortOrder: CatalogueSortOrder = .categoryThenName
+    @Published var categoryOrder: [String] = []
+    @Published var omittedProductIDs: Set<String> = []
+    @Published var previewSelection: Product?
+
     @Published var selectedTheme: CatalogueThemePreset = .studio
     @Published var customAccent = CatalogueThemePreset.studio.accent
     @Published var customPageColor = CatalogueThemePreset.studio.pageColor
+    @Published var customTextColor = CatalogueThemePreset.studio.textColor
+    @Published var customPriceColor = CatalogueThemePreset.studio.priceColor
+    @Published var customCardColor = CatalogueThemePreset.studio.cardColor
+    @Published var customImageBackgroundColor = CatalogueThemePreset.studio.imageBackgroundColor
     @Published var customFont = CatalogueThemePreset.studio.font
+    @Published var customTextAlignment = CatalogueThemePreset.studio.textAlignment
+    @Published var customImageFit: CatalogueImageFit = .contain
+    @Published var customCornerStyle = CatalogueThemePreset.studio.cornerStyle
+    @Published var customBorderStyle = CatalogueThemePreset.studio.borderStyle
+    @Published var customSpacing = CatalogueThemePreset.studio.spacing
 
     @Published var errorMessage: String?
     @Published var isExporting = false
@@ -35,7 +50,8 @@ final class CatalogueStore: ObservableObject {
     }
 
     var settings: CatalogueSettingsSnapshot {
-        CatalogueSettingsSnapshot(
+        let isCustom = selectedTheme == .custom
+        return CatalogueSettingsSnapshot(
             showImage: showImage,
             showName: showName,
             showPrice: showPrice,
@@ -49,23 +65,50 @@ final class CatalogueStore: ObservableObject {
             catalogueTitle: catalogueTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "Product Catalogue"
                 : catalogueTitle,
+            groupByCategory: groupByCategory,
+            sortOrder: sortOrder,
+            categoryOrder: categoryOrder,
             theme: selectedTheme,
-            accent: selectedTheme == .custom ? customAccent : selectedTheme.accent,
-            pageColor: selectedTheme == .custom ? customPageColor : selectedTheme.pageColor,
-            font: selectedTheme == .custom ? customFont : selectedTheme.font,
-            layoutStyle: selectedTheme == .custom ? .studio : selectedTheme.layoutStyle
+            accent: isCustom ? customAccent : selectedTheme.accent,
+            pageColor: isCustom ? customPageColor : selectedTheme.pageColor,
+            textColor: isCustom ? customTextColor : selectedTheme.textColor,
+            priceColor: isCustom ? customPriceColor : selectedTheme.priceColor,
+            cardColor: isCustom ? customCardColor : selectedTheme.cardColor,
+            imageBackgroundColor: isCustom ? customImageBackgroundColor : selectedTheme.imageBackgroundColor,
+            font: isCustom ? customFont : selectedTheme.font,
+            layoutStyle: isCustom ? .studio : selectedTheme.layoutStyle,
+            textAlignment: isCustom ? customTextAlignment : selectedTheme.textAlignment,
+            imageFit: isCustom ? customImageFit : .contain,
+            cornerStyle: isCustom ? customCornerStyle : selectedTheme.cornerStyle,
+            borderStyle: isCustom ? customBorderStyle : selectedTheme.borderStyle,
+            spacing: isCustom ? customSpacing : selectedTheme.spacing
         )
     }
 
-    var pageCount: Int {
-        max(1, Int(ceil(Double(products.count) / Double(max(1, productsPerPage)))))
+    var includedProducts: [Product] {
+        products.filter { !omittedProductIDs.contains($0.id) }
     }
 
-    var pageProducts: [Product] {
-        guard !products.isEmpty else { return [] }
-        let safePage = min(currentPage, pageCount - 1)
-        let start = safePage * productsPerPage
-        return Array(products[start..<min(start + productsPerPage, products.count)])
+    var omittedProducts: [Product] {
+        products.filter { omittedProductIDs.contains($0.id) }
+    }
+
+    var cataloguePages: [CataloguePage] {
+        CataloguePaginator.pages(products: includedProducts, settings: settings)
+    }
+
+    var pageCount: Int { cataloguePages.count }
+
+    var safeCurrentPage: Int {
+        min(max(0, currentPage), max(0, pageCount - 1))
+    }
+
+    var currentCataloguePage: CataloguePage {
+        cataloguePages[safeCurrentPage]
+    }
+
+    var categoryPageRanges: [CategoryPageRange] {
+        CataloguePaginator.ranges(for: cataloguePages)
     }
 
     func selectTheme(_ theme: CatalogueThemePreset) {
@@ -73,34 +116,123 @@ final class CatalogueStore: ObservableObject {
     }
 
     func customizeAccent(_ color: RGBAColor) {
-        copySelectedPresetToCustom()
+        prepareCustom()
         customAccent = color
+        customPriceColor = color
         selectedTheme = .custom
     }
 
     func customizePageColor(_ color: RGBAColor) {
-        copySelectedPresetToCustom()
+        prepareCustom()
         customPageColor = color
         selectedTheme = .custom
     }
 
+    func customizeTextColor(_ color: RGBAColor) {
+        prepareCustom()
+        customTextColor = color
+        selectedTheme = .custom
+    }
+
+    func customizePriceColor(_ color: RGBAColor) {
+        prepareCustom()
+        customPriceColor = color
+        selectedTheme = .custom
+    }
+
+    func customizeCardColor(_ color: RGBAColor) {
+        prepareCustom()
+        customCardColor = color
+        selectedTheme = .custom
+    }
+
+    func customizeImageBackgroundColor(_ color: RGBAColor) {
+        prepareCustom()
+        customImageBackgroundColor = color
+        selectedTheme = .custom
+    }
+
     func customizeFont(_ font: CatalogueFontFamily) {
-        copySelectedPresetToCustom()
+        prepareCustom()
         customFont = font
+        selectedTheme = .custom
+    }
+
+    func customizeTextAlignment(_ alignment: CatalogueTextAlignment) {
+        prepareCustom()
+        customTextAlignment = alignment
+        selectedTheme = .custom
+    }
+
+    func customizeImageFit(_ fit: CatalogueImageFit) {
+        prepareCustom()
+        customImageFit = fit
+        selectedTheme = .custom
+    }
+
+    func customizeCornerStyle(_ style: CatalogueCornerStyle) {
+        prepareCustom()
+        customCornerStyle = style
+        selectedTheme = .custom
+    }
+
+    func customizeBorderStyle(_ style: CatalogueBorderStyle) {
+        prepareCustom()
+        customBorderStyle = style
+        selectedTheme = .custom
+    }
+
+    func customizeSpacing(_ spacing: CatalogueSpacing) {
+        prepareCustom()
+        customSpacing = spacing
         selectedTheme = .custom
     }
 
     func setProductsPerPage(_ value: Int) {
         productsPerPage = value
-        currentPage = min(currentPage, pageCount - 1)
+        clampCurrentPage()
+    }
+
+    func setGroupByCategory(_ enabled: Bool) {
+        groupByCategory = enabled
+        currentPage = 0
+    }
+
+    func setSortOrder(_ order: CatalogueSortOrder) {
+        sortOrder = order
+        currentPage = 0
+    }
+
+    func moveCategory(_ category: String, direction: Int) {
+        guard let index = categoryOrder.firstIndex(of: category) else { return }
+        let destination = index + direction
+        guard categoryOrder.indices.contains(destination) else { return }
+        categoryOrder.swapAt(index, destination)
+        currentPage = 0
+    }
+
+    func omit(_ product: Product) {
+        omittedProductIDs.insert(product.id)
+        previewSelection = nil
+        clampCurrentPage()
+    }
+
+    func restore(_ product: Product) {
+        omittedProductIDs.remove(product.id)
+        clampCurrentPage()
+    }
+
+    func restoreAllProducts() {
+        omittedProductIDs.removeAll()
+        clampCurrentPage()
     }
 
     func previousPage() {
-        currentPage = max(0, currentPage - 1)
+        currentPage = max(0, safeCurrentPage - 1)
     }
 
     func nextPage() {
-        currentPage = min(pageCount - 1, currentPage + 1)
+        currentPage = min(pageCount - 1, safeCurrentPage + 1)
     }
 
     func importCSV() {
@@ -117,7 +249,7 @@ final class CatalogueStore: ObservableObject {
     }
 
     func exportPDF() {
-        guard !products.isEmpty else { return }
+        guard !includedProducts.isEmpty else { return }
         let panel = NSSavePanel()
         panel.title = "Export printable catalogue"
         panel.message = "Save the previewed catalogue layout as a print-ready PDF."
@@ -128,7 +260,7 @@ final class CatalogueStore: ObservableObject {
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        let exportProducts = products
+        let exportProducts = includedProducts
         let source = sourceName
         let exportSettings = settings
         isExporting = true
@@ -165,6 +297,11 @@ final class CatalogueStore: ObservableObject {
             let table = try CSVParser.parse(url: url)
             products = try CatalogueBuilder.products(from: table)
             sourceName = url.lastPathComponent
+            categoryOrder = Array(Set(products.map(\.catalogueCategory))).sorted {
+                $0.localizedStandardCompare($1) == .orderedAscending
+            }
+            omittedProductIDs.removeAll()
+            previewSelection = nil
             currentPage = 0
             errorMessage = nil
         } catch {
@@ -196,10 +333,23 @@ final class CatalogueStore: ObservableObject {
         return "WooDisplay-Catalogue-\(formatter.string(from: Date())).pdf"
     }
 
-    private func copySelectedPresetToCustom() {
+    private func prepareCustom() {
         guard selectedTheme != .custom else { return }
         customAccent = selectedTheme.accent
         customPageColor = selectedTheme.pageColor
+        customTextColor = selectedTheme.textColor
+        customPriceColor = selectedTheme.priceColor
+        customCardColor = selectedTheme.cardColor
+        customImageBackgroundColor = selectedTheme.imageBackgroundColor
         customFont = selectedTheme.font
+        customTextAlignment = selectedTheme.textAlignment
+        customImageFit = .contain
+        customCornerStyle = selectedTheme.cornerStyle
+        customBorderStyle = selectedTheme.borderStyle
+        customSpacing = selectedTheme.spacing
+    }
+
+    private func clampCurrentPage() {
+        currentPage = min(safeCurrentPage, max(0, pageCount - 1))
     }
 }

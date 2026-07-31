@@ -14,9 +14,14 @@ If macOS warns that the app is from an unidentified developer, Control-click the
 - Live US Letter preview of the PDF output
 - Starts with only product image, product name, and price
 - Optional SKU, category, stock, brand, and description fields
+- Category-grouped page sections with live page ranges and manual category ordering
+- Product ordering by category, name, or price
+- Click any preview product to omit it, with individual or bulk restore controls
 - Adjustable 6, 9, 12, or 16 products per page
 - Four preset designs: Studio, Editorial, Poster, and Gallery
-- Custom accent color, page color, and font
+- Thirteen font choices
+- Custom accent, page, text, price, card, and image-background colors
+- Adjustable alignment, image fit, card corners, borders, and spacing
 - Import another WooCommerce CSV from inside the app
 - Export the previewed design as a printable PDF catalogue
 

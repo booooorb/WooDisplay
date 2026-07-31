@@ -19,9 +19,10 @@ struct ExportSmokeTest {
 
         let output = root.appendingPathComponent("tmp/native-pdf")
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let categoryOrder = Array(Set(products.map(\.catalogueCategory))).sorted()
 
         for theme in CatalogueThemePreset.allCases where theme != .custom {
-            let settings = makeSettings(theme: theme)
+            let settings = makeSettings(theme: theme, categoryOrder: categoryOrder)
             try PDFCatalogueExporter.render(
                 products: Array(products.prefix(12)),
                 sourceName: csvURL.lastPathComponent,
@@ -43,11 +44,23 @@ struct ExportSmokeTest {
             productsPerPage: 16,
             showPageHeader: false,
             catalogueTitle: "Custom Catalogue",
+            groupByCategory: false,
+            sortOrder: .categoryThenName,
+            categoryOrder: categoryOrder,
             theme: .custom,
             accent: RGBAColor(red: 0.72, green: 0.18, blue: 0.36),
             pageColor: RGBAColor(red: 0.98, green: 0.95, blue: 0.88),
-            font: .menlo,
-            layoutStyle: .studio
+            textColor: .ink,
+            priceColor: RGBAColor(red: 0.72, green: 0.18, blue: 0.36),
+            cardColor: RGBAColor(red: 1, green: 0.98, blue: 0.92),
+            imageBackgroundColor: RGBAColor(red: 0.95, green: 0.92, blue: 0.84),
+            font: .baskerville,
+            layoutStyle: .studio,
+            textAlignment: .center,
+            imageFit: .fill,
+            cornerStyle: .rounded,
+            borderStyle: .strong,
+            spacing: .compact
         )
         try PDFCatalogueExporter.render(
             products: Array(products.prefix(16)),
@@ -57,17 +70,43 @@ struct ExportSmokeTest {
             to: output.appendingPathComponent("custom-options.pdf")
         )
 
+        let groupedSettings = makeSettings(
+            theme: .studio,
+            groupByCategory: true,
+            categoryOrder: categoryOrder
+        )
+        let completeURL = output.appendingPathComponent("complete-studio.pdf")
         try PDFCatalogueExporter.render(
             products: products,
             sourceName: csvURL.lastPathComponent,
-            settings: makeSettings(theme: .studio),
+            settings: groupedSettings,
             imageData: images,
-            to: output.appendingPathComponent("complete-studio.pdf")
+            to: completeURL
         )
-        print("Rendered \(products.count) products and all four theme presets.")
+
+        let finalOutput = root.appendingPathComponent("output/pdf/WooDisplay-Catalogue.pdf")
+        try FileManager.default.createDirectory(
+            at: finalOutput.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try? FileManager.default.removeItem(at: finalOutput)
+        try FileManager.default.copyItem(at: completeURL, to: finalOutput)
+
+        try PDFCatalogueExporter.render(
+            products: Array(products.dropFirst(2)),
+            sourceName: csvURL.lastPathComponent,
+            settings: groupedSettings,
+            imageData: images,
+            to: output.appendingPathComponent("grouped-omitted.pdf")
+        )
+        print("Rendered \(products.count) products, category grouping, omission, and all four themes.")
     }
 
-    private static func makeSettings(theme: CatalogueThemePreset) -> CatalogueSettingsSnapshot {
+    private static func makeSettings(
+        theme: CatalogueThemePreset,
+        groupByCategory: Bool = false,
+        categoryOrder: [String]
+    ) -> CatalogueSettingsSnapshot {
         CatalogueSettingsSnapshot(
             showImage: true,
             showName: true,
@@ -80,11 +119,23 @@ struct ExportSmokeTest {
             productsPerPage: 12,
             showPageHeader: true,
             catalogueTitle: "Product Catalogue",
+            groupByCategory: groupByCategory,
+            sortOrder: .categoryThenName,
+            categoryOrder: categoryOrder,
             theme: theme,
             accent: theme.accent,
             pageColor: theme.pageColor,
+            textColor: theme.textColor,
+            priceColor: theme.priceColor,
+            cardColor: theme.cardColor,
+            imageBackgroundColor: theme.imageBackgroundColor,
             font: theme.font,
-            layoutStyle: theme.layoutStyle
+            layoutStyle: theme.layoutStyle,
+            textAlignment: theme.textAlignment,
+            imageFit: .contain,
+            cornerStyle: theme.cornerStyle,
+            borderStyle: theme.borderStyle,
+            spacing: theme.spacing
         )
     }
 }

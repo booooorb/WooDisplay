@@ -10,8 +10,7 @@ struct CatalogueView: View {
             Divider()
 
             HStack(spacing: 0) {
-                SettingsInspector()
-                    .frame(width: 306)
+                SettingsInspector().frame(width: 316)
                 Divider()
                 PreviewWorkspace()
             }
@@ -87,10 +86,18 @@ private struct CatalogueTopBar: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("WooDisplay")
                     .font(.system(size: 16, weight: .bold))
-                Text(store.sourceName.isEmpty ? "No CSV selected" : "\(store.sourceName)  •  \(store.products.count) products")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(store.sourceName.isEmpty ? "No CSV selected" : store.sourceName)
+                    Text("•")
+                    Text("\(store.includedProducts.count) included")
+                    if !store.omittedProductIDs.isEmpty {
+                        Text("•")
+                        Text("\(store.omittedProductIDs.count) omitted")
+                    }
+                }
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
 
             Spacer()
@@ -107,7 +114,7 @@ private struct CatalogueTopBar: View {
                     .font(.system(size: 12.5, weight: .semibold))
             }
             .buttonStyle(PrimaryActionButtonStyle(accent: store.settings.accent.swiftUIColor))
-            .disabled(store.products.isEmpty || store.isExporting)
+            .disabled(store.includedProducts.isEmpty || store.isExporting)
         }
         .padding(.horizontal, 18)
         .frame(height: 58)
@@ -117,12 +124,15 @@ private struct CatalogueTopBar: View {
 
 private struct SettingsInspector: View {
     @EnvironmentObject private var store: CatalogueStore
+    @State private var showCategoryRanges = true
+    @State private var showOmittedProducts = false
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 19) {
                 contentSection
                 layoutSection
+                organizationSection
                 themeSection
                 customSection
             }
@@ -133,7 +143,7 @@ private struct SettingsInspector: View {
 
     private var contentSection: some View {
         InspectorSection(title: "CONTENT", subtitle: "Choose what appears on each product.") {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 7) {
                 ContentToggle("Product image", isOn: $store.showImage)
                 ContentToggle("Product name", isOn: $store.showName)
                 ContentToggle("Price", isOn: $store.showPrice)
@@ -149,10 +159,8 @@ private struct SettingsInspector: View {
 
     private var layoutSection: some View {
         InspectorSection(title: "LAYOUT", subtitle: "Keep it airy or fit more products.") {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Products per page")
-                    .font(.system(size: 11.5, weight: .medium))
-
+            VStack(alignment: .leading, spacing: 11) {
+                Text("Products per page").font(.system(size: 11.5, weight: .medium))
                 HStack(spacing: 5) {
                     ForEach([6, 9, 12, 16], id: \.self) { count in
                         Button {
@@ -166,8 +174,7 @@ private struct SettingsInspector: View {
                                 .background(store.productsPerPage == count ? store.settings.accent.swiftUIColor : Color.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                        .stroke(AppPalette.border)
+                                    RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(AppPalette.border)
                                 }
                         }
                         .buttonStyle(.plain)
@@ -178,6 +185,88 @@ private struct SettingsInspector: View {
                 if store.showPageHeader {
                     TextField("Catalogue title", text: $store.catalogueTitle)
                         .textFieldStyle(.roundedBorder)
+                }
+            }
+        }
+    }
+
+    private var organizationSection: some View {
+        InspectorSection(title: "ORGANIZATION", subtitle: "Control category sections and product order.") {
+            VStack(alignment: .leading, spacing: 10) {
+                ContentToggle(
+                    "Group pages by category",
+                    isOn: Binding(
+                        get: { store.groupByCategory },
+                        set: { store.setGroupByCategory($0) }
+                    )
+                )
+
+                Picker("Order products", selection: Binding(
+                    get: { store.sortOrder },
+                    set: { store.setSortOrder($0) }
+                )) {
+                    ForEach(CatalogueSortOrder.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .font(.system(size: 11))
+
+                if store.groupByCategory {
+                    DisclosureGroup(isExpanded: $showCategoryRanges) {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(Array(store.categoryPageRanges.enumerated()), id: \.element.id) { index, range in
+                                    CategoryRangeRow(
+                                        range: range,
+                                        canMoveUp: index > 0,
+                                        canMoveDown: index < store.categoryPageRanges.count - 1,
+                                        moveUp: { store.moveCategory(range.name, direction: -1) },
+                                        moveDown: { store.moveCategory(range.name, direction: 1) }
+                                    )
+                                    if index < store.categoryPageRanges.count - 1 { Divider() }
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 170)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(AppPalette.border)
+                        }
+                        .padding(.top, 5)
+                    } label: {
+                        Text("Category page ranges")
+                            .font(.system(size: 11.5, weight: .medium))
+                    }
+                }
+
+                if !store.omittedProductIDs.isEmpty {
+                    Divider()
+                    DisclosureGroup(isExpanded: $showOmittedProducts) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(store.omittedProducts) { product in
+                                HStack(spacing: 6) {
+                                    Text(product.name)
+                                        .font(.system(size: 10.5))
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Button("Restore") { store.restore(product) }
+                                        .font(.system(size: 9.5))
+                                        .buttonStyle(.link)
+                                }
+                            }
+                        }
+                        .padding(.top, 5)
+                    } label: {
+                        HStack {
+                            Text("\(store.omittedProductIDs.count) omitted")
+                                .font(.system(size: 11.5, weight: .medium))
+                            Spacer()
+                            Button("Restore all") { store.restoreAllProducts() }
+                                .font(.system(size: 10))
+                                .buttonStyle(.link)
+                        }
+                    }
                 }
             }
         }
@@ -196,41 +285,103 @@ private struct SettingsInspector: View {
     }
 
     private var customSection: some View {
-        InspectorSection(title: "CUSTOMIZE", subtitle: "Changing a value activates Custom.") {
+        InspectorSection(title: "CUSTOMIZE", subtitle: "Fine-tune every detail of the catalogue.") {
             VStack(spacing: 9) {
-                ColorPicker("Accent color", selection: accentBinding, supportsOpacity: false)
-                    .font(.system(size: 11.5))
-                ColorPicker("Page color", selection: pageColorBinding, supportsOpacity: false)
-                    .font(.system(size: 11.5))
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    CompactColorPicker("Accent", selection: accentBinding)
+                    CompactColorPicker("Page", selection: pageColorBinding)
+                    CompactColorPicker("Text", selection: textColorBinding)
+                    CompactColorPicker("Price", selection: priceColorBinding)
+                    CompactColorPicker("Card", selection: cardColorBinding)
+                    CompactColorPicker("Image", selection: imageBackgroundBinding)
+                }
+
                 Picker("Font", selection: fontBinding) {
                     ForEach(CatalogueFontFamily.allCases) { font in
                         Text(font.title).tag(font)
                     }
                 }
-                .font(.system(size: 11.5))
+                .font(.system(size: 10.5))
+                Picker("Text alignment", selection: textAlignmentBinding) {
+                    ForEach(CatalogueTextAlignment.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .font(.system(size: 10.5))
+                Picker("Image fit", selection: imageFitBinding) {
+                    ForEach(CatalogueImageFit.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .font(.system(size: 10.5))
+                Picker("Card corners", selection: cornerBinding) {
+                    ForEach(CatalogueCornerStyle.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .font(.system(size: 10.5))
+                Picker("Border", selection: borderBinding) {
+                    ForEach(CatalogueBorderStyle.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .font(.system(size: 10.5))
+                Picker("Spacing", selection: spacingBinding) {
+                    ForEach(CatalogueSpacing.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .font(.system(size: 10.5))
             }
         }
     }
 
-    private var accentBinding: Binding<Color> {
+    private func colorBinding(
+        get: @escaping () -> RGBAColor,
+        set: @escaping (RGBAColor) -> Void
+    ) -> Binding<Color> {
         Binding(
-            get: { store.settings.accent.swiftUIColor },
-            set: { store.customizeAccent(RGBAColor(nsColor: NSColor($0))) }
+            get: { get().swiftUIColor },
+            set: { set(RGBAColor(nsColor: NSColor($0))) }
         )
     }
 
+    private var accentBinding: Binding<Color> {
+        colorBinding(get: { store.settings.accent }, set: { store.customizeAccent($0) })
+    }
     private var pageColorBinding: Binding<Color> {
-        Binding(
-            get: { store.settings.pageColor.swiftUIColor },
-            set: { store.customizePageColor(RGBAColor(nsColor: NSColor($0))) }
-        )
+        colorBinding(get: { store.settings.pageColor }, set: { store.customizePageColor($0) })
+    }
+    private var textColorBinding: Binding<Color> {
+        colorBinding(get: { store.settings.textColor }, set: { store.customizeTextColor($0) })
+    }
+    private var priceColorBinding: Binding<Color> {
+        colorBinding(get: { store.settings.priceColor }, set: { store.customizePriceColor($0) })
+    }
+    private var cardColorBinding: Binding<Color> {
+        colorBinding(get: { store.settings.cardColor }, set: { store.customizeCardColor($0) })
+    }
+    private var imageBackgroundBinding: Binding<Color> {
+        colorBinding(get: { store.settings.imageBackgroundColor }, set: { store.customizeImageBackgroundColor($0) })
     }
 
     private var fontBinding: Binding<CatalogueFontFamily> {
-        Binding(
-            get: { store.settings.font },
-            set: { store.customizeFont($0) }
-        )
+        Binding(get: { store.settings.font }, set: { store.customizeFont($0) })
+    }
+    private var textAlignmentBinding: Binding<CatalogueTextAlignment> {
+        Binding(get: { store.settings.textAlignment }, set: { store.customizeTextAlignment($0) })
+    }
+    private var imageFitBinding: Binding<CatalogueImageFit> {
+        Binding(get: { store.settings.imageFit }, set: { store.customizeImageFit($0) })
+    }
+    private var cornerBinding: Binding<CatalogueCornerStyle> {
+        Binding(get: { store.settings.cornerStyle }, set: { store.customizeCornerStyle($0) })
+    }
+    private var borderBinding: Binding<CatalogueBorderStyle> {
+        Binding(get: { store.settings.borderStyle }, set: { store.customizeBorderStyle($0) })
+    }
+    private var spacingBinding: Binding<CatalogueSpacing> {
+        Binding(get: { store.settings.spacing }, set: { store.customizeSpacing($0) })
     }
 }
 
@@ -246,9 +397,7 @@ private struct InspectorSection<Content: View>: View {
                     .font(.system(size: 10, weight: .bold))
                     .tracking(0.8)
                     .foregroundStyle(.secondary)
-                Text(subtitle)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
+                Text(subtitle).font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
             content
         }
@@ -271,6 +420,40 @@ private struct ContentToggle: View {
     }
 }
 
+private struct CategoryRangeRow: View {
+    let range: CategoryPageRange
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let moveUp: () -> Void
+    let moveDown: () -> Void
+
+    var body: some View {
+        HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(range.name).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
+                Text("\(range.productCount) products").font(.system(size: 8.5)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(range.pageLabel)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+            Button(action: moveUp) {
+                Image(systemName: "chevron.up").font(.system(size: 8, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .disabled(!canMoveUp)
+            Button(action: moveDown) {
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .disabled(!canMoveDown)
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 34)
+    }
+}
+
 private struct ThemeSwatch: View {
     let theme: CatalogueThemePreset
     let isSelected: Bool
@@ -280,8 +463,7 @@ private struct ThemeSwatch: View {
         Button(action: action) {
             VStack(spacing: 5) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(theme.pageColor.swiftUIColor)
+                    RoundedRectangle(cornerRadius: 5, style: .continuous).fill(theme.pageColor.swiftUIColor)
                     if theme == .custom {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 13, weight: .medium))
@@ -302,7 +484,6 @@ private struct ThemeSwatch: View {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
                         .stroke(isSelected ? theme.accent.swiftUIColor : AppPalette.border, lineWidth: isSelected ? 2 : 1)
                 }
-
                 Text(theme.title)
                     .font(.system(size: 8.5, weight: isSelected ? .semibold : .regular))
                     .lineLimit(1)
@@ -311,6 +492,21 @@ private struct ThemeSwatch: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct CompactColorPicker: View {
+    let title: String
+    @Binding var selection: Color
+
+    init(_ title: String, selection: Binding<Color>) {
+        self.title = title
+        _selection = selection
+    }
+
+    var body: some View {
+        ColorPicker(title, selection: $selection, supportsOpacity: false)
+            .font(.system(size: 10.5))
     }
 }
 
@@ -326,19 +522,33 @@ private struct PreviewWorkspace: View {
 
             VStack(spacing: 0) {
                 Spacer(minLength: 18)
-                PDFPagePreview(
-                    products: store.pageProducts,
-                    pageNumber: store.currentPage + 1,
-                    pageCount: store.pageCount,
-                    settings: store.settings
-                )
-                .frame(width: 612, height: 792)
-                .scaleEffect(scale)
-                .frame(width: 612 * scale, height: 792 * scale)
-                .shadow(color: .black.opacity(0.20), radius: 18, y: 8)
+                ZStack {
+                    PDFPagePreview(
+                        page: store.currentCataloguePage,
+                        pageNumber: store.safeCurrentPage + 1,
+                        pageCount: store.pageCount,
+                        settings: store.settings,
+                        selectedProductID: store.previewSelection?.id,
+                        onSelectProduct: { store.previewSelection = $0 }
+                    )
+                    .frame(width: 612, height: 792)
+                    .scaleEffect(scale)
+                    .frame(width: 612 * scale, height: 792 * scale)
+                    .shadow(color: .black.opacity(0.20), radius: 18, y: 8)
+
+                    if let product = store.previewSelection {
+                        ProductOmitPopover(
+                            product: product,
+                            settings: store.settings,
+                            omit: { store.omit(product) },
+                            cancel: { store.previewSelection = nil }
+                        )
+                        .offset(y: -60)
+                        .transition(.scale(scale: 0.96).combined(with: .opacity))
+                    }
+                }
                 Spacer(minLength: 12)
-                PageNavigator()
-                    .frame(height: navHeight)
+                PageNavigator().frame(height: navHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -352,24 +562,27 @@ private struct PageNavigator: View {
     var body: some View {
         HStack(spacing: 13) {
             Button(action: store.previousPage) {
-                Image(systemName: "chevron.left")
-                    .frame(width: 28, height: 26)
+                Image(systemName: "chevron.left").frame(width: 28, height: 26)
             }
             .buttonStyle(.bordered)
-            .disabled(store.currentPage == 0)
+            .disabled(store.safeCurrentPage == 0)
 
-            Text("Page \(store.currentPage + 1) of \(store.pageCount)")
-                .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-                .frame(minWidth: 96)
+            VStack(spacing: 1) {
+                Text("Page \(store.safeCurrentPage + 1) of \(store.pageCount)")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .monospacedDigit()
+                if let category = store.currentCataloguePage.category {
+                    Text(category).font(.system(size: 9.5)).foregroundStyle(.secondary)
+                }
+            }
+            .foregroundStyle(.secondary)
+            .frame(minWidth: 130)
 
             Button(action: store.nextPage) {
-                Image(systemName: "chevron.right")
-                    .frame(width: 28, height: 26)
+                Image(systemName: "chevron.right").frame(width: 28, height: 26)
             }
             .buttonStyle(.bordered)
-            .disabled(store.currentPage >= store.pageCount - 1)
+            .disabled(store.safeCurrentPage >= store.pageCount - 1)
         }
     }
 }
