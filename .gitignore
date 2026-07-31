@@ -1,0 +1,57 @@
+# Private catalogue data
+*.csv
+*.tsv
+*.xlsx
+*.xls
+
+# Generated documents and application bundles
+*.pdf
+*.app/
+output/
+exports/
+
+# Swift and Xcode build output
+.build/
+.build-*/
+DerivedData/
+.swiftpm/
+*.dSYM/
+*.xcarchive/
+*.ipa
+
+# Temporary files, previews, and logs
+tmp/
+temp/
+*.tmp
+*.log
+*.png~
+
+# Local credentials and environment configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.mobileprovision
+credentials.*
+secrets.*
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+
+# macOS and editor metadata
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+*.swo
+*~
+
+# IDE settings
+.idea/
+.vscode/
