@@ -9,7 +9,7 @@ struct RGBAColor: Codable, Hashable, Sendable {
 
     static let cobalt = RGBAColor(red: 0.10, green: 0.32, blue: 0.86)
     static let aubergine = RGBAColor(red: 0.28, green: 0.12, blue: 0.24)
-    static let posterYellow = RGBAColor(red: 0.96, green: 0.78, blue: 0.16)
+    static let posterOrange = RGBAColor(red: 0.74, green: 0.29, blue: 0.10)
     static let forest = RGBAColor(red: 0.12, green: 0.34, blue: 0.25)
     static let nordicBlue = RGBAColor(red: 0.30, green: 0.47, blue: 0.56)
     static let midnightBlue = RGBAColor(red: 0.32, green: 0.72, blue: 0.96)
@@ -259,7 +259,7 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         switch self {
         case .studio, .custom: .cobalt
         case .editorial: .aubergine
-        case .poster: .posterYellow
+        case .poster: .posterOrange
         case .gallery: .forest
         case .nordic: .nordicBlue
         case .midnight: .midnightBlue
@@ -272,7 +272,7 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         switch self {
         case .studio, .custom: .white
         case .editorial: .ivory
-        case .poster: .cream
+        case .poster: RGBAColor(red: 0.985, green: 0.97, blue: 0.93)
         case .gallery: .sage
         case .nordic: RGBAColor(red: 0.96, green: 0.98, blue: 0.985)
         case .midnight: .midnight
@@ -284,8 +284,8 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
     var font: CatalogueFontFamily {
         switch self {
         case .studio, .custom: .systemSans
-        case .editorial: .georgia
-        case .poster: .dinCondensed
+        case .editorial: .optima
+        case .poster: .avenirNext
         case .gallery: .avenirNext
         case .nordic: .optima
         case .midnight: .helveticaNeue
@@ -308,12 +308,12 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
     }
 
     var textColor: RGBAColor { pageColor.contrastingText }
-    var priceColor: RGBAColor { layoutStyle == .poster ? textColor : accent }
+    var priceColor: RGBAColor { accent }
 
     var cardColor: RGBAColor {
         switch self {
         case .gallery: .white
-        case .poster: RGBAColor(red: 1, green: 0.95, blue: 0.68)
+        case .editorial, .poster: .white
         case .nordic: .white
         case .midnight: RGBAColor(red: 0.08, green: 0.11, blue: 0.18)
         case .terracotta: RGBAColor(red: 1.0, green: 0.965, blue: 0.91)
@@ -325,8 +325,8 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
     var imageBackgroundColor: RGBAColor {
         switch self {
         case .gallery: RGBAColor(red: 0.96, green: 0.97, blue: 0.95)
-        case .editorial: RGBAColor(red: 0.95, green: 0.92, blue: 0.87)
-        case .poster: RGBAColor(red: 1, green: 0.97, blue: 0.82)
+        case .editorial: RGBAColor(red: 0.955, green: 0.94, blue: 0.91)
+        case .poster: RGBAColor(red: 0.96, green: 0.93, blue: 0.87)
         case .nordic: RGBAColor(red: 0.90, green: 0.95, blue: 0.97)
         case .midnight: RGBAColor(red: 0.11, green: 0.15, blue: 0.22)
         case .terracotta: RGBAColor(red: 0.95, green: 0.82, blue: 0.72)
@@ -337,7 +337,7 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
 
     var textAlignment: CatalogueTextAlignment {
         switch self {
-        case .editorial: .center
+        case .editorial: .leading
         default: .leading
         }
     }
@@ -352,7 +352,8 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
 
     var borderStyle: CatalogueBorderStyle {
         switch self {
-        case .poster, .mono: .strong
+        case .mono: .strong
+        case .poster: .subtle
         case .midnight: .none
         default: .subtle
         }
@@ -360,7 +361,8 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
 
     var spacing: CatalogueSpacing {
         switch self {
-        case .editorial, .nordic: .airy
+        case .nordic: .airy
+        case .editorial: .comfortable
         case .mono: .compact
         default: .comfortable
         }
@@ -416,6 +418,7 @@ struct CatalogueSettingsSnapshot: Sendable {
     let showPageHeader: Bool
     let catalogueTitle: String
     let companyLogoData: Data?
+    let companyLogoSize: Double
 
     let groupByCategory: Bool
     let sortOrder: CatalogueSortOrder

@@ -248,11 +248,14 @@ private struct PreviewPageHeader: View {
                 Rectangle().fill(colors.text.swiftUIColor.opacity(0.14)).frame(height: 1)
             }
         case .editorial:
-            HStack(spacing: 9) {
-                companyLogo
+            ZStack {
+                HStack {
+                    companyLogo
+                    Spacer()
+                    pageBadge
+                }
                 titleStack(titleSize: 17, alignment: .center)
-                    .frame(maxWidth: .infinity)
-                pageBadge
+                    .frame(maxWidth: 280)
             }
             .foregroundStyle(colors.text.swiftUIColor)
             .overlay(alignment: .bottom) {
@@ -261,25 +264,14 @@ private struct PreviewPageHeader: View {
         case .poster:
             HStack(spacing: 9) {
                 companyLogo
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(eyebrow)
-                        .font(.system(size: 6.5, weight: .black))
-                        .tracking(0.8)
-                    Text(title.uppercased())
-                        .font(settings.font.swiftUIFont(size: 19, weight: .bold))
-                        .tracking(0.35)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.58)
-                }
+                titleStack(titleSize: 17.5)
                 Spacer()
-                Text(pageLabel)
-                    .font(.system(size: 8, weight: .black))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(colors.accent.swiftUIColor)
-                    .foregroundStyle(colors.accent.contrastingText.swiftUIColor)
+                pageBadge
             }
             .foregroundStyle(colors.text.swiftUIColor)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(colors.accent.swiftUIColor).frame(height: 2)
+            }
         case .gallery:
             HStack(spacing: 10) {
                 companyLogo
@@ -300,7 +292,10 @@ private struct PreviewPageHeader: View {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 32, maxHeight: 30)
+                .frame(
+                    width: CGFloat(settings.companyLogoSize),
+                    height: CGFloat(settings.companyLogoSize)
+                )
                 .accessibilityLabel("Company logo")
         }
     }

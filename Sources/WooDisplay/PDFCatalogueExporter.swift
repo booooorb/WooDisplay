@@ -234,10 +234,14 @@ enum PDFCatalogueExporter {
             : "CATEGORY PAGE \(page.pageInCategory) OF \(page.categoryPageCount)"
 
         let hasLogo = settings.companyLogoData.flatMap(NSImage.init(data:)) != nil
+        let logoSize = CGFloat(min(40, max(18, settings.companyLogoSize)))
         if let logoData = settings.companyLogoData {
-            drawCompanyLogo(data: logoData, in: CGRect(x: 30, y: 16, width: 30, height: 30))
+            drawCompanyLogo(
+                data: logoData,
+                in: CGRect(x: 30, y: 31 - logoSize / 2, width: logoSize, height: logoSize)
+            )
         }
-        let leadingTextX: CGFloat = hasLogo ? 70 : 30
+        let leadingTextX: CGFloat = hasLogo ? 30 + logoSize + 10 : 30
 
         switch settings.layoutStyle {
         case .studio:
@@ -254,34 +258,35 @@ enum PDFCatalogueExporter {
             NSBezierPath(rect: CGRect(x: 30, y: 57, width: 552, height: 0.8)).fill()
 
         case .editorial:
-            drawEyebrow(eyebrow, x: 86, width: 390, settings: settings, color: textColor, alignment: .center)
+            drawEyebrow(eyebrow, x: 166, width: 280, settings: settings, color: textColor, alignment: .center)
             drawText(
                 title,
-                in: CGRect(x: 86, y: 26, width: 390, height: 22),
+                in: CGRect(x: 166, y: 26, width: 280, height: 22),
                 font: settings.font.nsFont(size: 17, weight: .semibold),
                 color: textColor,
                 alignment: .center,
                 truncation: .byTruncatingTail
             )
-            drawHeaderBadge(pageLabel, rect: CGRect(x: 488, y: 25, width: 94, height: 19), colors: colors)
+            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
             accent.setFill()
             NSBezierPath(rect: CGRect(x: 282, y: 54, width: 48, height: 2)).fill()
 
         case .poster:
             drawEyebrow(eyebrow, x: leadingTextX, width: 430 - leadingTextX, settings: settings, color: textColor)
             drawText(
-                title.uppercased(),
-                in: CGRect(x: leadingTextX, y: 24, width: 445 - leadingTextX, height: 24),
-                font: settings.font.nsFont(size: 19, weight: .bold),
+                title,
+                in: CGRect(x: leadingTextX, y: 26, width: 445 - leadingTextX, height: 22),
+                font: settings.font.nsFont(size: 17.5, weight: .semibold),
                 color: textColor,
-                tracking: 0.35,
                 truncation: .byTruncatingTail
             )
-            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 24, width: 127, height: 21), colors: colors)
+            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
+            accent.setFill()
+            NSBezierPath(rect: CGRect(x: 30, y: 56, width: 552, height: 2)).fill()
 
         case .gallery:
             accent.setFill()
-            let accentX = hasLogo ? 69.0 : 30.0
+            let accentX = hasLogo ? leadingTextX - 1 : 30.0
             NSBezierPath(roundedRect: CGRect(x: accentX, y: 17, width: 8, height: 28), xRadius: 2, yRadius: 2).fill()
             let galleryTextX = accentX + 18
             drawEyebrow(eyebrow, x: galleryTextX, width: 427 - galleryTextX, settings: settings, color: textColor)

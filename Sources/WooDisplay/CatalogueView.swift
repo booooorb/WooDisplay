@@ -267,6 +267,16 @@ private struct SettingsInspector: View {
                                 }
                                 .font(.system(size: 10.5))
                             }
+
+                            HStack(spacing: 9) {
+                                Text("Logo size")
+                                    .font(.system(size: 10.5))
+                                Slider(value: $store.companyLogoSize, in: 18...40, step: 1)
+                                Text("\(Int(store.companyLogoSize)) pt")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 38, alignment: .trailing)
+                            }
                         } else {
                             Button(action: store.importCompanyLogo) {
                                 Label("Upload company logo", systemImage: "photo.badge.plus")

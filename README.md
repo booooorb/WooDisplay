@@ -1,4 +1,12 @@
-# WooDisplay for macOS
+<p align="center">
+  <img src="docs/images/woodisplay-logo.png" width="128" height="128" alt="WooDisplay logo">
+</p>
+
+<h1 align="center">WooDisplay for macOS</h1>
+
+<p align="center">
+  A compact native catalogue studio for WooCommerce product exports.
+</p>
 
 WooDisplay is a compact native macOS studio for turning a WooCommerce product-export CSV into a printable PDF catalogue. The supplied catalogue is bundled into the app, and another WooCommerce export can be loaded at any time with **Import CSV**.
 
@@ -41,7 +49,7 @@ If macOS warns that the app is from an unidentified developer, Control-click the
 - Custom accent, page, text, price, card, and image-background colors
 - Import and export reusable JSON theme settings, including category palettes
 - Adjustable alignment, image fit, card corners, borders, and spacing
-- Optional company logo upload for catalogue page headers; catalogues have no logo by default
+- Optional company logo upload with adjustable sizing for catalogue page headers; catalogues have no logo by default
 - Import another WooCommerce CSV from inside the app
 - Export the previewed design as a printable PDF catalogue
 

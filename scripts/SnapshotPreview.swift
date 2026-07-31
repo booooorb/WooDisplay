@@ -19,6 +19,9 @@ struct SnapshotPreview {
         let logoPath = CommandLine.arguments
             .first { $0.hasPrefix("logo=") }
             .map { String($0.dropFirst("logo=".count)) }
+        let logoSize = CommandLine.arguments
+            .first { $0.hasPrefix("logosize=") }
+            .flatMap { Double($0.dropFirst("logosize=".count)) }
         let renderHeight: CGFloat = tallLayout ? 1_240 : 880
         app.appearance = NSAppearance(named: useDarkAppearance ? .darkAqua : .aqua)
         if let requestedTheme {
@@ -27,6 +30,9 @@ struct SnapshotPreview {
         if let logoPath, let data = try? Data(contentsOf: URL(fileURLWithPath: logoPath)) {
             store.companyLogoData = data
             store.companyLogoName = URL(fileURLWithPath: logoPath).lastPathComponent
+        }
+        if let logoSize {
+            store.companyLogoSize = min(40, max(18, logoSize))
         }
         if showPopover {
             store.omittedProductIDs = Set(store.products.prefix(2).map(\.id))

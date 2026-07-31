@@ -34,6 +34,7 @@ final class CatalogueStore: ObservableObject {
     @Published var catalogueTitle = "Product Catalogue"
     @Published var companyLogoData: Data?
     @Published var companyLogoName: String?
+    @Published var companyLogoSize = 30.0
 
     @Published var groupByCategory = true
     @Published var sortOrder: CatalogueSortOrder = .categoryThenName
@@ -86,6 +87,7 @@ final class CatalogueStore: ObservableObject {
                 ? "Product Catalogue"
                 : catalogueTitle,
             companyLogoData: companyLogoData,
+            companyLogoSize: companyLogoSize,
             groupByCategory: groupByCategory,
             sortOrder: sortOrder,
             categoryOrder: categoryOrder,
