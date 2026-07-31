@@ -8,12 +8,18 @@ struct ExportSmokeTest {
         let csvURL = root.appendingPathComponent("wc-product-export-30-7-2026-1785460675095.csv")
         let table = try CSVParser.parse(url: csvURL)
         let products = try CatalogueBuilder.products(from: table)
-        let cache = root.appendingPathComponent("tmp/pdfs/images")
+        let imageCaches = [
+            root.appendingPathComponent("tmp/pdfs/images"),
+            root.appendingPathComponent(".build-check/qa-temp/pdfs/images")
+        ]
         var images: [String: Data] = [:]
         for product in products {
-            let path = cache.appendingPathComponent("\(product.id).jpg")
-            if let data = try? Data(contentsOf: path) {
-                images[product.id] = data
+            for cache in imageCaches {
+                let path = cache.appendingPathComponent("\(product.id).jpg")
+                if let data = try? Data(contentsOf: path) {
+                    images[product.id] = data
+                    break
+                }
             }
         }
 
@@ -44,6 +50,7 @@ struct ExportSmokeTest {
             productsPerPage: 16,
             showPageHeader: false,
             catalogueTitle: "Custom Catalogue",
+            companyLogoData: nil,
             groupByCategory: false,
             sortOrder: .categoryThenName,
             categoryOrder: categoryOrder,
@@ -60,7 +67,8 @@ struct ExportSmokeTest {
             imageFit: .fill,
             cornerStyle: .rounded,
             borderStyle: .strong,
-            spacing: .compact
+            spacing: .compact,
+            categoryColors: [:]
         )
         try PDFCatalogueExporter.render(
             products: Array(products.prefix(16)),
@@ -99,13 +107,37 @@ struct ExportSmokeTest {
             imageData: images,
             to: output.appendingPathComponent("grouped-omitted.pdf")
         )
-        print("Rendered \(products.count) products, category grouping, omission, and all four themes.")
+
+        let firstCategory = categoryOrder[0]
+        let categoryColors = CatalogueColorTheme(
+            accent: RGBAColor(red: 0.78, green: 0.18, blue: 0.25),
+            page: RGBAColor(red: 1.0, green: 0.95, blue: 0.94),
+            text: .ink,
+            price: RGBAColor(red: 0.78, green: 0.18, blue: 0.25),
+            card: .white,
+            imageBackground: RGBAColor(red: 0.98, green: 0.90, blue: 0.90)
+        )
+        let categoryThemeSettings = makeSettings(
+            theme: .studio,
+            groupByCategory: true,
+            categoryOrder: categoryOrder,
+            categoryColors: [firstCategory: categoryColors]
+        )
+        try PDFCatalogueExporter.render(
+            products: products,
+            sourceName: csvURL.lastPathComponent,
+            settings: categoryThemeSettings,
+            imageData: images,
+            to: output.appendingPathComponent("category-colors.pdf")
+        )
+        print("Rendered \(products.count) products, clear category pages, custom category colors, omission, and all eight preset themes.")
     }
 
     private static func makeSettings(
         theme: CatalogueThemePreset,
         groupByCategory: Bool = false,
-        categoryOrder: [String]
+        categoryOrder: [String],
+        categoryColors: [String: CatalogueColorTheme] = [:]
     ) -> CatalogueSettingsSnapshot {
         CatalogueSettingsSnapshot(
             showImage: true,
@@ -119,6 +151,7 @@ struct ExportSmokeTest {
             productsPerPage: 12,
             showPageHeader: true,
             catalogueTitle: "Product Catalogue",
+            companyLogoData: nil,
             groupByCategory: groupByCategory,
             sortOrder: .categoryThenName,
             categoryOrder: categoryOrder,
@@ -135,7 +168,8 @@ struct ExportSmokeTest {
             imageFit: .contain,
             cornerStyle: theme.cornerStyle,
             borderStyle: theme.borderStyle,
-            spacing: theme.spacing
+            spacing: theme.spacing,
+            categoryColors: categoryColors
         )
     }
 }

@@ -1,10 +1,20 @@
+import AppKit
 import SwiftUI
 
 enum AppPalette {
-    static let canvas = Color(red: 0.92, green: 0.93, blue: 0.95)
-    static let inspector = Color(red: 0.975, green: 0.978, blue: 0.984)
-    static let border = Color.black.opacity(0.12)
-    static let secondaryText = Color(red: 0.38, green: 0.41, blue: 0.46)
+    static let window = Color(nsColor: .windowBackgroundColor)
+    static let canvas = Color(
+        nsColor: NSColor(name: NSColor.Name("WooDisplayCanvas")) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return isDark
+                ? NSColor(srgbRed: 0.135, green: 0.14, blue: 0.15, alpha: 1)
+                : NSColor(srgbRed: 0.92, green: 0.93, blue: 0.95, alpha: 1)
+        }
+    )
+    static let inspector = Color(nsColor: .controlBackgroundColor)
+    static let controlSurface = Color(nsColor: .textBackgroundColor)
+    static let border = Color(nsColor: .separatorColor)
+    static let secondaryText = Color(nsColor: .secondaryLabelColor)
 }
 
 struct ProductImage: View {
@@ -45,11 +55,12 @@ struct ImageFallback: View {
 
 struct PrimaryActionButtonStyle: ButtonStyle {
     let accent: Color
+    var foreground: Color = .white
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Color.white)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 14)
             .frame(height: 34)
             .background(accent.opacity(isEnabled ? (configuration.isPressed ? 0.82 : 1) : 0.42))
@@ -67,11 +78,18 @@ struct PDFPagePreview: View {
     var onSelectProduct: ((Product) -> Void)?
 
     private let pageSize = CGSize(width: 612, height: 792)
+    private var colors: CatalogueColorTheme { settings.colors(for: page.category) }
 
     var body: some View {
         VStack(spacing: 0) {
             if settings.showPageHeader {
-                PreviewPageHeader(settings: settings, category: page.category)
+                PreviewPageHeader(
+                    settings: settings,
+                    colors: colors,
+                    category: page.category,
+                    pageInCategory: page.pageInCategory,
+                    categoryPageCount: page.categoryPageCount
+                )
                     .frame(height: 58)
                     .padding(.horizontal, 30)
             } else {
@@ -90,13 +108,13 @@ struct PDFPagePreview: View {
                 Text("\(pageNumber) / \(pageCount)")
             }
             .font(settings.font.swiftUIFont(size: 8.5, weight: .medium))
-            .foregroundStyle(settings.textColor.swiftUIColor.opacity(0.55))
+            .foregroundStyle(colors.text.swiftUIColor.opacity(0.55))
             .padding(.horizontal, 30)
             .frame(height: 24)
         }
         .frame(width: pageSize.width, height: pageSize.height)
-        .background(settings.pageColor.swiftUIColor)
-        .environment(\.colorScheme, settings.textColor == .white ? .dark : .light)
+        .background(colors.page.swiftUIColor)
+        .environment(\.colorScheme, colors.text == .white ? .dark : .light)
     }
 
     private var productRows: some View {
@@ -118,6 +136,7 @@ struct PDFPagePreview: View {
                                     PreviewProductCell(
                                         product: product,
                                         settings: settings,
+                                        colors: colors,
                                         isSelected: selectedProductID == product.id
                                     )
                                 }
@@ -142,11 +161,12 @@ struct ProductOmitPopover: View {
     let cancel: () -> Void
 
     var body: some View {
+        let colors = settings.colors(for: product.catalogueCategory)
         VStack(spacing: 12) {
             HStack(spacing: 12) {
                 ProductImage(
                     url: product.primaryImageURL,
-                    background: settings.imageBackgroundColor.swiftUIColor
+                    background: colors.imageBackground.swiftUIColor
                 )
                 .frame(width: 82, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
@@ -157,7 +177,7 @@ struct ProductOmitPopover: View {
                         .lineLimit(3)
                     Text(product.priceLabel)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(settings.priceColor.swiftUIColor)
+                        .foregroundStyle(colors.price.swiftUIColor)
                     Text(product.catalogueCategory)
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
@@ -197,73 +217,126 @@ struct ProductOmitPopover: View {
 
 private struct PreviewPageHeader: View {
     let settings: CatalogueSettingsSnapshot
+    let colors: CatalogueColorTheme
     let category: String?
+    let pageInCategory: Int
+    let categoryPageCount: Int
 
     private var title: String {
-        guard let category else { return settings.catalogueTitle }
-        return "\(settings.catalogueTitle) / \(category)"
+        category.map { "Category: \($0)" } ?? settings.catalogueTitle
+    }
+
+    private var eyebrow: String {
+        category == nil ? "ALL PRODUCTS" : settings.catalogueTitle.uppercased()
+    }
+
+    private var pageLabel: String {
+        category == nil ? "CATALOGUE" : "CATEGORY PAGE \(pageInCategory) OF \(categoryPageCount)"
     }
 
     var body: some View {
         switch settings.layoutStyle {
         case .studio:
-            HStack {
-                Text(title)
-                    .font(settings.font.swiftUIFont(size: 17, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+            HStack(spacing: 9) {
+                companyLogo
+                titleStack(titleSize: 16.5)
                 Spacer()
-                Capsule().fill(settings.accent.swiftUIColor).frame(width: 35, height: 5)
+                pageBadge
             }
-            .foregroundStyle(settings.textColor.swiftUIColor)
+            .foregroundStyle(colors.text.swiftUIColor)
             .overlay(alignment: .bottom) {
-                Rectangle().fill(settings.textColor.swiftUIColor.opacity(0.14)).frame(height: 1)
+                Rectangle().fill(colors.text.swiftUIColor.opacity(0.14)).frame(height: 1)
             }
         case .editorial:
-            Text(title)
-                .font(settings.font.swiftUIFont(size: 18, weight: .semibold))
-                .foregroundStyle(settings.textColor.swiftUIColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-                .frame(maxWidth: .infinity)
-                .overlay(alignment: .bottom) {
-                    Rectangle().fill(settings.accent.swiftUIColor).frame(width: 48, height: 2)
-                }
+            HStack(spacing: 9) {
+                companyLogo
+                titleStack(titleSize: 17, alignment: .center)
+                    .frame(maxWidth: .infinity)
+                pageBadge
+            }
+            .foregroundStyle(colors.text.swiftUIColor)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(colors.accent.swiftUIColor).frame(width: 48, height: 2)
+            }
         case .poster:
-            HStack {
-                Text(title.uppercased())
-                    .font(settings.font.swiftUIFont(size: 21, weight: .bold))
-                    .tracking(0.4)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
+            HStack(spacing: 9) {
+                companyLogo
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(eyebrow)
+                        .font(.system(size: 6.5, weight: .black))
+                        .tracking(0.8)
+                    Text(title.uppercased())
+                        .font(settings.font.swiftUIFont(size: 19, weight: .bold))
+                        .tracking(0.35)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.58)
+                }
                 Spacer()
-                Text("CATALOGUE")
+                Text(pageLabel)
                     .font(.system(size: 8, weight: .black))
                     .padding(.horizontal, 7)
                     .padding(.vertical, 4)
-                    .background(settings.accent.swiftUIColor)
-                    .foregroundStyle(settings.accent.contrastingText.swiftUIColor)
+                    .background(colors.accent.swiftUIColor)
+                    .foregroundStyle(colors.accent.contrastingText.swiftUIColor)
             }
-            .foregroundStyle(settings.textColor.swiftUIColor)
+            .foregroundStyle(colors.text.swiftUIColor)
         case .gallery:
             HStack(spacing: 10) {
+                companyLogo
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(settings.accent.swiftUIColor)
+                    .fill(colors.accent.swiftUIColor)
                     .frame(width: 10, height: 28)
-                Text(title)
-                    .font(settings.font.swiftUIFont(size: 16, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                titleStack(titleSize: 16)
                 Spacer()
+                pageBadge
             }
-            .foregroundStyle(settings.textColor.swiftUIColor)
+            .foregroundStyle(colors.text.swiftUIColor)
         }
+    }
+
+    @ViewBuilder
+    private var companyLogo: some View {
+        if let data = settings.companyLogoData, let image = NSImage(data: data) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: 32, maxHeight: 30)
+                .accessibilityLabel("Company logo")
+        }
+    }
+
+    private func titleStack(
+        titleSize: CGFloat,
+        alignment: HorizontalAlignment = .leading
+    ) -> some View {
+        VStack(alignment: alignment, spacing: 0) {
+            Text(eyebrow)
+                .font(.system(size: 6.5, weight: .bold))
+                .tracking(0.7)
+                .opacity(0.62)
+            Text(title)
+                .font(settings.font.swiftUIFont(size: titleSize, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+        }
+    }
+
+    private var pageBadge: some View {
+        Text(pageLabel)
+            .font(.system(size: 6.5, weight: .bold))
+            .tracking(0.25)
+            .foregroundStyle(colors.accent.contrastingText.swiftUIColor)
+            .padding(.horizontal, 7)
+            .frame(height: 19)
+            .background(colors.accent.swiftUIColor)
+            .clipShape(Capsule())
     }
 }
 
 private struct PreviewProductCell: View {
     let product: Product
     let settings: CatalogueSettingsSnapshot
+    let colors: CatalogueColorTheme
     let isSelected: Bool
 
     var body: some View {
@@ -272,7 +345,7 @@ private struct PreviewProductCell: View {
                 ProductImage(
                     url: product.primaryImageURL,
                     contentMode: settings.imageFit == .fill ? .fill : .fit,
-                    background: settings.imageBackgroundColor.swiftUIColor
+                    background: colors.imageBackground.swiftUIColor
                 )
                 .frame(maxWidth: .infinity)
                 .frame(maxHeight: .infinity)
@@ -285,7 +358,7 @@ private struct PreviewProductCell: View {
                 .padding(.top, settings.showImage ? 6 : 10)
                 .padding(.bottom, 9)
         }
-        .background(settings.cardColor.swiftUIColor)
+        .background(colors.card.swiftUIColor)
         .clipShape(cellShape)
         .overlay { cellBorder }
     }
@@ -295,7 +368,7 @@ private struct PreviewProductCell: View {
             if settings.showName {
                 Text(product.name)
                     .font(settings.font.swiftUIFont(size: nameSize, weight: .semibold))
-                    .foregroundStyle(settings.textColor.swiftUIColor)
+                    .foregroundStyle(colors.text.swiftUIColor)
                     .lineLimit(2)
                     .multilineTextAlignment(textAlignment)
                     .frame(maxWidth: .infinity, alignment: frameAlignment)
@@ -304,7 +377,7 @@ private struct PreviewProductCell: View {
             if settings.showPrice {
                 Text(product.priceLabel)
                     .font(settings.font.swiftUIFont(size: priceSize, weight: .bold))
-                    .foregroundStyle(settings.priceColor.swiftUIColor)
+                    .foregroundStyle(colors.price.swiftUIColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
@@ -322,7 +395,7 @@ private struct PreviewProductCell: View {
         if settings.showDescription {
             Text(product.cleanDescription)
                 .font(settings.font.swiftUIFont(size: 7.5))
-                .foregroundStyle(settings.textColor.swiftUIColor.opacity(0.65))
+                .foregroundStyle(colors.text.swiftUIColor.opacity(0.65))
                 .lineLimit(2)
                 .multilineTextAlignment(textAlignment)
         }
@@ -331,7 +404,7 @@ private struct PreviewProductCell: View {
     private func metadata(_ value: String) -> some View {
         Text(value)
             .font(settings.font.swiftUIFont(size: 7.5))
-            .foregroundStyle(settings.textColor.swiftUIColor.opacity(0.62))
+            .foregroundStyle(colors.text.swiftUIColor.opacity(0.62))
             .lineLimit(1)
     }
 
@@ -373,12 +446,12 @@ private struct PreviewProductCell: View {
         if settings.borderStyle.width > 0 {
             cellShape.stroke(
                 isSelected
-                    ? settings.accent.swiftUIColor
-                    : settings.textColor.swiftUIColor.opacity(settings.borderStyle.opacity),
+                    ? colors.accent.swiftUIColor
+                    : colors.text.swiftUIColor.opacity(settings.borderStyle.opacity),
                 lineWidth: isSelected ? max(2, settings.borderStyle.width) : settings.borderStyle.width
             )
         } else if isSelected {
-            cellShape.stroke(settings.accent.swiftUIColor, lineWidth: 2)
+            cellShape.stroke(colors.accent.swiftUIColor, lineWidth: 2)
         }
     }
 }

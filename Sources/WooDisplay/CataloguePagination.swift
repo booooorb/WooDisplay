@@ -4,6 +4,8 @@ struct CataloguePage: Identifiable, Sendable {
     let id: String
     let products: [Product]
     let category: String?
+    let pageInCategory: Int
+    let categoryPageCount: Int
     let firstProductNumber: Int
     let lastProductNumber: Int
 }
@@ -31,6 +33,8 @@ enum CataloguePaginator {
                     id: "empty",
                     products: [],
                     category: nil,
+                    pageInCategory: 1,
+                    categoryPageCount: 1,
                     firstProductNumber: 0,
                     lastProductNumber: 0
                 )
@@ -149,11 +153,14 @@ enum CataloguePaginator {
         for start in stride(from: 0, to: products.count, by: productsPerPage) {
             let end = min(start + productsPerPage, products.count)
             let pageProducts = Array(products[start..<end])
+            let pageCount = max(1, Int(ceil(Double(products.count) / Double(productsPerPage))))
             result.append(
                 CataloguePage(
                     id: "\(category ?? "all")-\(start)",
                     products: pageProducts,
                     category: category,
+                    pageInCategory: (start / productsPerPage) + 1,
+                    categoryPageCount: pageCount,
                     firstProductNumber: firstProductNumber + start,
                     lastProductNumber: firstProductNumber + end - 1
                 )

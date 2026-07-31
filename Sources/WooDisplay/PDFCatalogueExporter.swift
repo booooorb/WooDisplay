@@ -168,11 +168,12 @@ enum PDFCatalogueExporter {
         pageCount: Int,
         settings: CatalogueSettingsSnapshot
     ) {
-        beginPage(context, pageColor: settings.pageColor.nsColor)
+        let colors = settings.colors(for: page.category)
+        beginPage(context, pageColor: colors.page.nsColor)
 
         let headerHeight: CGFloat = settings.showPageHeader ? 58 : 25
         if settings.showPageHeader {
-            drawHeader(settings: settings, category: page.category)
+            drawHeader(settings: settings, page: page, colors: colors)
         }
 
         let margin: CGFloat = 30
@@ -197,7 +198,8 @@ enum PDFCatalogueExporter {
                 product,
                 in: rect,
                 imageData: imageData[product.id],
-                settings: settings
+                settings: settings,
+                colors: colors
             )
         }
 
@@ -205,77 +207,160 @@ enum PDFCatalogueExporter {
             "\(page.firstProductNumber)-\(page.lastProductNumber)",
             in: CGRect(x: margin, y: pageSize.height - 18, width: 120, height: 11),
             font: settings.font.nsFont(size: 8.5, weight: .medium),
-            color: settings.textColor.nsColor.withAlphaComponent(0.55)
+            color: colors.text.nsColor.withAlphaComponent(0.55)
         )
         drawText(
             "\(pageNumber) / \(pageCount)",
             in: CGRect(x: pageSize.width - margin - 120, y: pageSize.height - 18, width: 120, height: 11),
             font: settings.font.nsFont(size: 8.5, weight: .medium),
-            color: settings.textColor.nsColor.withAlphaComponent(0.55),
+            color: colors.text.nsColor.withAlphaComponent(0.55),
             alignment: .right
         )
         endPage(context)
     }
 
     @MainActor
-    private static func drawHeader(settings: CatalogueSettingsSnapshot, category: String?) {
-        let textColor = settings.textColor.nsColor
-        let accent = settings.accent.nsColor
-        let title = category.map { "\(settings.catalogueTitle) / \($0)" } ?? settings.catalogueTitle
+    private static func drawHeader(
+        settings: CatalogueSettingsSnapshot,
+        page: CataloguePage,
+        colors: CatalogueColorTheme
+    ) {
+        let textColor = colors.text.nsColor
+        let accent = colors.accent.nsColor
+        let title = page.category.map { "Category: \($0)" } ?? settings.catalogueTitle
+        let eyebrow = page.category == nil ? "ALL PRODUCTS" : settings.catalogueTitle.uppercased()
+        let pageLabel = page.category == nil
+            ? "CATALOGUE"
+            : "CATEGORY PAGE \(page.pageInCategory) OF \(page.categoryPageCount)"
+
+        let hasLogo = settings.companyLogoData.flatMap(NSImage.init(data:)) != nil
+        if let logoData = settings.companyLogoData {
+            drawCompanyLogo(data: logoData, in: CGRect(x: 30, y: 16, width: 30, height: 30))
+        }
+        let leadingTextX: CGFloat = hasLogo ? 70 : 30
 
         switch settings.layoutStyle {
         case .studio:
+            drawEyebrow(eyebrow, x: leadingTextX, width: 410 - leadingTextX, settings: settings, color: textColor)
             drawText(
                 title,
-                in: CGRect(x: 30, y: 23, width: 400, height: 24),
-                font: settings.font.nsFont(size: 17, weight: .bold),
-                color: textColor
+                in: CGRect(x: leadingTextX, y: 26, width: 430 - leadingTextX, height: 22),
+                font: settings.font.nsFont(size: 16.5, weight: .semibold),
+                color: textColor,
+                truncation: .byTruncatingTail
             )
-            accent.setFill()
-            NSBezierPath(roundedRect: CGRect(x: 547, y: 31, width: 35, height: 5), xRadius: 2.5, yRadius: 2.5).fill()
+            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
             textColor.withAlphaComponent(0.14).setFill()
             NSBezierPath(rect: CGRect(x: 30, y: 57, width: 552, height: 0.8)).fill()
 
         case .editorial:
+            drawEyebrow(eyebrow, x: 86, width: 390, settings: settings, color: textColor, alignment: .center)
             drawText(
                 title,
-                in: CGRect(x: 106, y: 21, width: 400, height: 25),
-                font: settings.font.nsFont(size: 18, weight: .semibold),
+                in: CGRect(x: 86, y: 26, width: 390, height: 22),
+                font: settings.font.nsFont(size: 17, weight: .semibold),
                 color: textColor,
-                alignment: .center
+                alignment: .center,
+                truncation: .byTruncatingTail
             )
+            drawHeaderBadge(pageLabel, rect: CGRect(x: 488, y: 25, width: 94, height: 19), colors: colors)
             accent.setFill()
             NSBezierPath(rect: CGRect(x: 282, y: 54, width: 48, height: 2)).fill()
 
         case .poster:
+            drawEyebrow(eyebrow, x: leadingTextX, width: 430 - leadingTextX, settings: settings, color: textColor)
             drawText(
                 title.uppercased(),
-                in: CGRect(x: 30, y: 18, width: 425, height: 29),
-                font: settings.font.nsFont(size: 21, weight: .bold),
+                in: CGRect(x: leadingTextX, y: 24, width: 445 - leadingTextX, height: 24),
+                font: settings.font.nsFont(size: 19, weight: .bold),
                 color: textColor,
-                tracking: 0.4
+                tracking: 0.35,
+                truncation: .byTruncatingTail
             )
-            accent.setFill()
-            NSBezierPath(rect: CGRect(x: 500, y: 23, width: 82, height: 22)).fill()
-            drawText(
-                "CATALOGUE",
-                in: CGRect(x: 505, y: 29, width: 72, height: 10),
-                font: NSFont.systemFont(ofSize: 8, weight: .black),
-                color: settings.accent.contrastingText.nsColor,
-                alignment: .center,
-                tracking: 0.5
-            )
+            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 24, width: 127, height: 21), colors: colors)
 
         case .gallery:
             accent.setFill()
-            NSBezierPath(roundedRect: CGRect(x: 30, y: 17, width: 10, height: 28), xRadius: 2, yRadius: 2).fill()
+            let accentX = hasLogo ? 69.0 : 30.0
+            NSBezierPath(roundedRect: CGRect(x: accentX, y: 17, width: 8, height: 28), xRadius: 2, yRadius: 2).fill()
+            let galleryTextX = accentX + 18
+            drawEyebrow(eyebrow, x: galleryTextX, width: 427 - galleryTextX, settings: settings, color: textColor)
             drawText(
                 title,
-                in: CGRect(x: 50, y: 23, width: 430, height: 22),
+                in: CGRect(x: galleryTextX, y: 26, width: 427 - galleryTextX, height: 21),
                 font: settings.font.nsFont(size: 16, weight: .semibold),
-                color: textColor
+                color: textColor,
+                truncation: .byTruncatingTail
             )
+            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
         }
+    }
+
+    @MainActor
+    private static func drawCompanyLogo(data: Data, in rect: CGRect) {
+        guard let image = NSImage(data: data) else { return }
+        let sourceSize = image.size
+        guard sourceSize.width > 0, sourceSize.height > 0 else { return }
+        let scale = min(rect.width / sourceSize.width, rect.height / sourceSize.height)
+        let fitted = CGRect(
+            x: rect.midX - sourceSize.width * scale / 2,
+            y: rect.midY - sourceSize.height * scale / 2,
+            width: sourceSize.width * scale,
+            height: sourceSize.height * scale
+        )
+        NSGraphicsContext.saveGraphicsState()
+        image.draw(
+            in: fitted,
+            from: .zero,
+            operation: .sourceOver,
+            fraction: 1,
+            respectFlipped: true,
+            hints: [.interpolation: NSImageInterpolation.high]
+        )
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    @MainActor
+    private static func drawEyebrow(
+        _ text: String,
+        x: CGFloat,
+        width: CGFloat,
+        settings: CatalogueSettingsSnapshot,
+        color: NSColor,
+        alignment: NSTextAlignment = .left
+    ) {
+        drawText(
+            text,
+            in: CGRect(x: x, y: 17, width: width, height: 9),
+            font: NSFont.systemFont(ofSize: 6.5, weight: .bold),
+            color: color.withAlphaComponent(0.62),
+            alignment: alignment,
+            tracking: 0.7,
+            truncation: .byTruncatingTail
+        )
+    }
+
+    @MainActor
+    private static func drawHeaderBadge(
+        _ text: String,
+        rect: CGRect,
+        colors: CatalogueColorTheme
+    ) {
+        colors.accent.nsColor.setFill()
+        NSBezierPath(
+            roundedRect: rect,
+            xRadius: rect.height / 2,
+            yRadius: rect.height / 2
+        ).fill()
+        drawText(
+            text,
+            in: CGRect(x: rect.minX + 5, y: rect.minY + 5, width: rect.width - 10, height: 9),
+            font: NSFont.systemFont(ofSize: 6.5, weight: .bold),
+            color: colors.accent.contrastingText.nsColor,
+            alignment: .center,
+            tracking: 0.25,
+            truncation: .byTruncatingTail
+        )
     }
 
     @MainActor
@@ -283,12 +368,13 @@ enum PDFCatalogueExporter {
         _ product: Product,
         in rect: CGRect,
         imageData: Data?,
-        settings: CatalogueSettingsSnapshot
+        settings: CatalogueSettingsSnapshot,
+        colors: CatalogueColorTheme
     ) {
         let radius = settings.cornerStyle.radius
         let shape = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-        let textColor = settings.textColor.nsColor
-        settings.cardColor.nsColor.setFill()
+        let textColor = colors.text.nsColor
+        colors.card.nsColor.setFill()
         shape.fill()
 
         if settings.borderStyle.width > 0 {
@@ -322,7 +408,7 @@ enum PDFCatalogueExporter {
                 width: rect.width - inset * 2,
                 height: max(20, imageHeight - inset)
             )
-            settings.imageBackgroundColor.nsColor.setFill()
+            colors.imageBackground.nsColor.setFill()
             NSBezierPath(
                 roundedRect: imageRect,
                 xRadius: settings.cornerStyle == .rounded ? 5 : 0,
@@ -392,7 +478,7 @@ enum PDFCatalogueExporter {
                 product.priceLabel,
                 in: CGRect(x: textRect.minX, y: cursor, width: textRect.width, height: priceHeight),
                 font: settings.font.nsFont(size: priceSize, weight: .bold),
-                color: settings.priceColor.nsColor,
+                color: colors.price.nsColor,
                 alignment: alignment,
                 truncation: .byTruncatingTail
             )

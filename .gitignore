@@ -9,6 +9,7 @@
 *.app/
 output/
 exports/
+WooDisplay-Theme*.json
 
 # Swift and Xcode build output
 .build/

@@ -11,12 +11,16 @@ struct RGBAColor: Codable, Hashable, Sendable {
     static let aubergine = RGBAColor(red: 0.28, green: 0.12, blue: 0.24)
     static let posterYellow = RGBAColor(red: 0.96, green: 0.78, blue: 0.16)
     static let forest = RGBAColor(red: 0.12, green: 0.34, blue: 0.25)
+    static let nordicBlue = RGBAColor(red: 0.30, green: 0.47, blue: 0.56)
+    static let midnightBlue = RGBAColor(red: 0.32, green: 0.72, blue: 0.96)
+    static let terracotta = RGBAColor(red: 0.72, green: 0.25, blue: 0.16)
     static let white = RGBAColor(red: 1, green: 1, blue: 1)
     static let ivory = RGBAColor(red: 0.98, green: 0.96, blue: 0.91)
     static let cream = RGBAColor(red: 1.00, green: 0.98, blue: 0.87)
     static let sage = RGBAColor(red: 0.91, green: 0.94, blue: 0.89)
     static let ink = RGBAColor(red: 0.08, green: 0.09, blue: 0.11)
     static let softGray = RGBAColor(red: 0.965, green: 0.97, blue: 0.98)
+    static let midnight = RGBAColor(red: 0.045, green: 0.065, blue: 0.11)
 
     var swiftUIColor: Color {
         Color(red: red, green: green, blue: blue, opacity: alpha)
@@ -47,7 +51,7 @@ struct RGBAColor: Codable, Hashable, Sendable {
     }
 }
 
-enum CatalogueFontFamily: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueFontFamily: String, CaseIterable, Codable, Identifiable, Sendable {
     case systemSans
     case avenirNext
     case helveticaNeue
@@ -115,14 +119,28 @@ enum CatalogueFontFamily: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum CatalogueLayoutStyle: String, Sendable {
+enum CatalogueLayoutStyle: String, Codable, Sendable {
     case studio
     case editorial
     case poster
     case gallery
 }
 
-enum CatalogueSortOrder: String, CaseIterable, Identifiable, Sendable {
+enum SettingsInspectorMode: String, CaseIterable, Identifiable, Sendable {
+    case layout
+    case theme
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+    var icon: String {
+        switch self {
+        case .layout: "rectangle.3.group"
+        case .theme: "paintpalette"
+        }
+    }
+}
+
+enum CatalogueSortOrder: String, CaseIterable, Codable, Identifiable, Sendable {
     case categoryThenName
     case name
     case priceLow
@@ -140,7 +158,7 @@ enum CatalogueSortOrder: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum CatalogueTextAlignment: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueTextAlignment: String, CaseIterable, Codable, Identifiable, Sendable {
     case leading
     case center
     case trailing
@@ -149,7 +167,7 @@ enum CatalogueTextAlignment: String, CaseIterable, Identifiable, Sendable {
     var title: String { rawValue.capitalized }
 }
 
-enum CatalogueImageFit: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueImageFit: String, CaseIterable, Codable, Identifiable, Sendable {
     case contain
     case fill
 
@@ -157,7 +175,7 @@ enum CatalogueImageFit: String, CaseIterable, Identifiable, Sendable {
     var title: String { rawValue.capitalized }
 }
 
-enum CatalogueCornerStyle: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueCornerStyle: String, CaseIterable, Codable, Identifiable, Sendable {
     case square
     case subtle
     case rounded
@@ -181,7 +199,7 @@ enum CatalogueCornerStyle: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum CatalogueBorderStyle: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueBorderStyle: String, CaseIterable, Codable, Identifiable, Sendable {
     case none
     case subtle
     case strong
@@ -206,7 +224,7 @@ enum CatalogueBorderStyle: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum CatalogueSpacing: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueSpacing: String, CaseIterable, Codable, Identifiable, Sendable {
     case compact
     case comfortable
     case airy
@@ -223,11 +241,15 @@ enum CatalogueSpacing: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
+enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable {
     case studio
     case editorial
     case poster
     case gallery
+    case nordic
+    case midnight
+    case terracotta
+    case mono
     case custom
 
     var id: String { rawValue }
@@ -239,6 +261,10 @@ enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
         case .editorial: .aubergine
         case .poster: .posterYellow
         case .gallery: .forest
+        case .nordic: .nordicBlue
+        case .midnight: .midnightBlue
+        case .terracotta: .terracotta
+        case .mono: .ink
         }
     }
 
@@ -248,6 +274,10 @@ enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
         case .editorial: .ivory
         case .poster: .cream
         case .gallery: .sage
+        case .nordic: RGBAColor(red: 0.96, green: 0.98, blue: 0.985)
+        case .midnight: .midnight
+        case .terracotta: RGBAColor(red: 0.97, green: 0.91, blue: 0.83)
+        case .mono: .white
         }
     }
 
@@ -257,6 +287,10 @@ enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
         case .editorial: .georgia
         case .poster: .dinCondensed
         case .gallery: .avenirNext
+        case .nordic: .optima
+        case .midnight: .helveticaNeue
+        case .terracotta: .baskerville
+        case .mono: .menlo
         }
     }
 
@@ -266,6 +300,10 @@ enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
         case .editorial: .editorial
         case .poster: .poster
         case .gallery: .gallery
+        case .nordic: .studio
+        case .midnight: .gallery
+        case .terracotta: .editorial
+        case .mono: .studio
         }
     }
 
@@ -276,6 +314,10 @@ enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .gallery: .white
         case .poster: RGBAColor(red: 1, green: 0.95, blue: 0.68)
+        case .nordic: .white
+        case .midnight: RGBAColor(red: 0.08, green: 0.11, blue: 0.18)
+        case .terracotta: RGBAColor(red: 1.0, green: 0.965, blue: 0.91)
+        case .mono: .white
         default: pageColor
         }
     }
@@ -285,25 +327,80 @@ enum CatalogueThemePreset: String, CaseIterable, Identifiable, Sendable {
         case .gallery: RGBAColor(red: 0.96, green: 0.97, blue: 0.95)
         case .editorial: RGBAColor(red: 0.95, green: 0.92, blue: 0.87)
         case .poster: RGBAColor(red: 1, green: 0.97, blue: 0.82)
+        case .nordic: RGBAColor(red: 0.90, green: 0.95, blue: 0.97)
+        case .midnight: RGBAColor(red: 0.11, green: 0.15, blue: 0.22)
+        case .terracotta: RGBAColor(red: 0.95, green: 0.82, blue: 0.72)
+        case .mono: RGBAColor(red: 0.93, green: 0.93, blue: 0.93)
         default: .softGray
         }
     }
 
     var textAlignment: CatalogueTextAlignment {
-        layoutStyle == .editorial ? .center : .leading
+        switch self {
+        case .editorial: .center
+        default: .leading
+        }
     }
 
     var cornerStyle: CatalogueCornerStyle {
-        layoutStyle == .gallery ? .rounded : .square
+        switch self {
+        case .gallery, .midnight: .rounded
+        case .nordic, .terracotta: .subtle
+        default: .square
+        }
     }
 
     var borderStyle: CatalogueBorderStyle {
-        layoutStyle == .poster ? .strong : .subtle
+        switch self {
+        case .poster, .mono: .strong
+        case .midnight: .none
+        default: .subtle
+        }
     }
 
     var spacing: CatalogueSpacing {
-        layoutStyle == .editorial ? .airy : .comfortable
+        switch self {
+        case .editorial, .nordic: .airy
+        case .mono: .compact
+        default: .comfortable
+        }
     }
+
+    var colors: CatalogueColorTheme {
+        CatalogueColorTheme(
+            accent: accent,
+            page: pageColor,
+            text: textColor,
+            price: priceColor,
+            card: cardColor,
+            imageBackground: imageBackgroundColor
+        )
+    }
+}
+
+struct CatalogueColorTheme: Codable, Hashable, Sendable {
+    var accent: RGBAColor
+    var page: RGBAColor
+    var text: RGBAColor
+    var price: RGBAColor
+    var card: RGBAColor
+    var imageBackground: RGBAColor
+}
+
+struct CatalogueThemeDocument: Codable, Sendable {
+    static let currentVersion = 1
+
+    var version = currentVersion
+    var selectedTheme: CatalogueThemePreset
+    var customColors: CatalogueColorTheme
+    var font: CatalogueFontFamily
+    var layoutStyle: CatalogueLayoutStyle
+    var textAlignment: CatalogueTextAlignment
+    var imageFit: CatalogueImageFit
+    var cornerStyle: CatalogueCornerStyle
+    var borderStyle: CatalogueBorderStyle
+    var spacing: CatalogueSpacing
+    var categoryColors: [String: CatalogueColorTheme]
 }
 
 struct CatalogueSettingsSnapshot: Sendable {
@@ -318,6 +415,7 @@ struct CatalogueSettingsSnapshot: Sendable {
     let productsPerPage: Int
     let showPageHeader: Bool
     let catalogueTitle: String
+    let companyLogoData: Data?
 
     let groupByCategory: Bool
     let sortOrder: CatalogueSortOrder
@@ -337,6 +435,23 @@ struct CatalogueSettingsSnapshot: Sendable {
     let cornerStyle: CatalogueCornerStyle
     let borderStyle: CatalogueBorderStyle
     let spacing: CatalogueSpacing
+    let categoryColors: [String: CatalogueColorTheme]
+
+    var globalColors: CatalogueColorTheme {
+        CatalogueColorTheme(
+            accent: accent,
+            page: pageColor,
+            text: textColor,
+            price: priceColor,
+            card: cardColor,
+            imageBackground: imageBackgroundColor
+        )
+    }
+
+    func colors(for category: String?) -> CatalogueColorTheme {
+        guard let category else { return globalColors }
+        return categoryColors[category] ?? globalColors
+    }
 
     var columns: Int {
         switch productsPerPage {

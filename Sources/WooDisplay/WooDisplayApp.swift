@@ -18,6 +18,9 @@ struct WooDisplayApp: App {
                     .keyboardShortcut("o")
                 Button("Export PDF…") { store.exportPDF() }
                     .keyboardShortcut("e")
+                Divider()
+                Button("Import Theme…") { store.importThemeSettings() }
+                Button("Export Theme…") { store.exportThemeSettings() }
             }
 
             CommandMenu("Catalogue") {
