@@ -555,7 +555,7 @@ private struct SettingsInspector: View {
     }
 
     private var themeSection: some View {
-        InspectorSection(title: "PRESET THEMES", subtitle: "Eight ready-made looks, plus custom.") {
+        InspectorSection(title: "PRESET THEMES", subtitle: "Twelve ready-made looks, plus custom.") {
             VStack(alignment: .leading, spacing: 10) {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 4),

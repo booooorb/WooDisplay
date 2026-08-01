@@ -252,6 +252,10 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
     case midnight
     case terracotta
     case mono
+    case coastal
+    case lavender
+    case espresso
+    case citrus
     case custom
 
     var id: String { rawValue }
@@ -267,6 +271,10 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .midnight: .midnightBlue
         case .terracotta: .terracotta
         case .mono: .ink
+        case .coastal: RGBAColor(red: 0.03, green: 0.43, blue: 0.49)
+        case .lavender: RGBAColor(red: 0.39, green: 0.27, blue: 0.66)
+        case .espresso: RGBAColor(red: 0.34, green: 0.19, blue: 0.12)
+        case .citrus: RGBAColor(red: 0.25, green: 0.46, blue: 0.13)
         }
     }
 
@@ -280,6 +288,10 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .midnight: .midnight
         case .terracotta: RGBAColor(red: 0.97, green: 0.91, blue: 0.83)
         case .mono: .white
+        case .coastal: RGBAColor(red: 0.93, green: 0.98, blue: 0.98)
+        case .lavender: RGBAColor(red: 0.97, green: 0.95, blue: 0.99)
+        case .espresso: RGBAColor(red: 0.96, green: 0.93, blue: 0.88)
+        case .citrus: RGBAColor(red: 0.98, green: 0.98, blue: 0.91)
         }
     }
 
@@ -293,6 +305,10 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .midnight: .helveticaNeue
         case .terracotta: .baskerville
         case .mono: .menlo
+        case .coastal: .gillSans
+        case .lavender: .palatino
+        case .espresso: .avenirNext
+        case .citrus: .optima
         }
     }
 
@@ -306,6 +322,10 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .midnight: .gallery
         case .terracotta: .editorial
         case .mono: .studio
+        case .coastal: .gallery
+        case .lavender: .editorial
+        case .espresso: .gallery
+        case .citrus: .poster
         }
     }
 
@@ -320,6 +340,10 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .midnight: RGBAColor(red: 0.08, green: 0.11, blue: 0.18)
         case .terracotta: RGBAColor(red: 1.0, green: 0.965, blue: 0.91)
         case .mono: .white
+        case .coastal: .white
+        case .lavender: .white
+        case .espresso: RGBAColor(red: 1.0, green: 0.985, blue: 0.96)
+        case .citrus: .white
         default: pageColor
         }
     }
@@ -333,21 +357,25 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .midnight: RGBAColor(red: 0.11, green: 0.15, blue: 0.22)
         case .terracotta: RGBAColor(red: 0.95, green: 0.82, blue: 0.72)
         case .mono: RGBAColor(red: 0.93, green: 0.93, blue: 0.93)
+        case .coastal: RGBAColor(red: 0.87, green: 0.95, blue: 0.95)
+        case .lavender: RGBAColor(red: 0.93, green: 0.90, blue: 0.97)
+        case .espresso: RGBAColor(red: 0.91, green: 0.86, blue: 0.79)
+        case .citrus: RGBAColor(red: 0.94, green: 0.95, blue: 0.82)
         default: .softGray
         }
     }
 
     var textAlignment: CatalogueTextAlignment {
         switch self {
-        case .editorial: .leading
+        case .editorial, .lavender: .leading
         default: .leading
         }
     }
 
     var cornerStyle: CatalogueCornerStyle {
         switch self {
-        case .gallery, .midnight: .rounded
-        case .nordic, .terracotta: .subtle
+        case .gallery, .midnight, .coastal: .rounded
+        case .nordic, .terracotta, .lavender, .espresso: .subtle
         default: .square
         }
     }
@@ -357,14 +385,15 @@ enum CatalogueThemePreset: String, CaseIterable, Codable, Identifiable, Sendable
         case .mono: .strong
         case .poster: .subtle
         case .midnight: .none
+        case .espresso: .none
         default: .subtle
         }
     }
 
     var spacing: CatalogueSpacing {
         switch self {
-        case .nordic: .airy
-        case .editorial: .comfortable
+        case .nordic, .lavender: .airy
+        case .editorial, .coastal, .espresso: .comfortable
         case .mono: .compact
         default: .comfortable
         }

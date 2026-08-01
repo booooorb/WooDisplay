@@ -131,7 +131,7 @@ struct ExportSmokeTest {
             imageData: images,
             to: output.appendingPathComponent("category-colors.pdf")
         )
-        print("Rendered \(products.count) products, clear category pages, custom category colors, omission, and all eight preset themes.")
+        print("Rendered \(products.count) products, clear category pages, custom category colors, omission, and all twelve preset themes.")
     }
 
     private static func makeSettings(

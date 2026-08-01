@@ -6,7 +6,7 @@ struct ModelSmokeTest {
     static func main() throws {
         let store = CatalogueStore()
         precondition(store.products.count == 253)
-        precondition(CatalogueThemePreset.allCases.filter { $0 != .custom }.count == 8)
+        precondition(CatalogueThemePreset.allCases.filter { $0 != .custom }.count == 12)
         precondition(store.inspectorMode == .layout)
         store.inspectorMode = .theme
         precondition(store.inspectorMode == .theme)
@@ -78,6 +78,6 @@ struct ModelSmokeTest {
         precondition(store.currentCataloguePage.category == nil)
         precondition(store.pageCount == 22)
 
-        print("Model checks passed: three-mode settings, brand/category/price filters, eight presets, category colors, theme round-trip, omission, sorting, and pagination.")
+        print("Model checks passed: three-mode settings, brand/category/price filters, twelve presets, category colors, theme round-trip, omission, sorting, and pagination.")
     }
 }

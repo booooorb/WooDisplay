@@ -20,7 +20,7 @@ WooDisplay is a compact native macOS studio for turning a WooCommerce product-ex
 
 ### Theme settings
 
-Choose from eight presets, customize catalogue and category colors, change typography, and import or export reusable theme files.
+Choose from twelve presets, customize catalogue and category colors, change typography, and import or export reusable theme files.
 
 ![WooDisplay Theme settings with preset themes and category color controls](docs/images/woo-display-theme-settings.png)
 
@@ -55,7 +55,7 @@ The Control-click step is required only for the first launch because this downlo
 - Separate **Layout**, **Filters**, and **Theme** inspector modes for a cleaner workflow
 - Catalogue-wide brand, category, and price filters applied before pagination and PDF export
 - Native macOS light and dark appearance support for the application interface
-- Eight preset designs: Studio, Editorial, Poster, Gallery, Nordic, Midnight, Terracotta, and Mono
+- Twelve preset designs: Studio, Editorial, Poster, Gallery, Nordic, Midnight, Terracotta, Mono, Coastal, Lavender, Espresso, and Citrus
 - Thirteen font choices
 - Custom accent, page, text, price, card, and image-background colors
 - Import and export reusable JSON theme settings, including category palettes
