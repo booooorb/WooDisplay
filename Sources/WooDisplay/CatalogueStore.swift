@@ -41,6 +41,11 @@ final class CatalogueStore: ObservableObject {
     @Published var categoryOrder: [String] = []
     @Published var omittedProductIDs: Set<String> = []
     @Published var previewSelection: Product?
+    @Published var excludedBrands: Set<String> = []
+    @Published var excludedCategories: Set<String> = []
+    @Published var priceFilterEnabled = false
+    @Published var filterMinimumPrice = 0.0
+    @Published var filterMaximumPrice = 0.0
 
     @Published var selectedTheme: CatalogueThemePreset = .studio
     @Published var customAccent = CatalogueThemePreset.studio.accent
@@ -109,13 +114,52 @@ final class CatalogueStore: ObservableObject {
         )
     }
 
+    var filteredProducts: [Product] {
+        products.filter { product in
+            guard !excludedBrands.contains(product.brand),
+                  !excludedCategories.contains(product.catalogueCategory) else {
+                return false
+            }
+            guard priceFilterEnabled else { return true }
+            guard let price = product.currentPrice else { return false }
+            return price >= filterMinimumPrice && price <= filterMaximumPrice
+        }
+    }
+
     var includedProducts: [Product] {
-        products.filter { !omittedProductIDs.contains($0.id) }
+        filteredProducts.filter { !omittedProductIDs.contains($0.id) }
     }
 
     var omittedProducts: [Product] {
         products.filter { omittedProductIDs.contains($0.id) }
     }
+
+    var availableBrands: [(name: String, count: Int)] {
+        Dictionary(grouping: products, by: \.brand)
+            .map { (name: $0.key, count: $0.value.count) }
+            .sorted { lhs, rhs in
+                if lhs.name.isEmpty { return false }
+                if rhs.name.isEmpty { return true }
+                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    var availableCategories: [(name: String, count: Int)] {
+        Dictionary(grouping: products, by: \.catalogueCategory)
+            .map { (name: $0.key, count: $0.value.count) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    var cataloguePriceRange: ClosedRange<Double> {
+        let prices = products.compactMap(\.currentPrice)
+        return (prices.min() ?? 0)...(prices.max() ?? 0)
+    }
+
+    var activeFilterCount: Int {
+        excludedBrands.count + excludedCategories.count + (priceFilterEnabled ? 1 : 0)
+    }
+
+    var filteredOutCount: Int { products.count - filteredProducts.count }
 
     var cataloguePages: [CataloguePage] {
         CataloguePaginator.pages(products: includedProducts, settings: settings)
@@ -297,6 +341,41 @@ final class CatalogueStore: ObservableObject {
     func restoreAllProducts() {
         omittedProductIDs.removeAll()
         clampCurrentPage()
+    }
+
+    func setBrand(_ brand: String, included: Bool) {
+        if included { excludedBrands.remove(brand) } else { excludedBrands.insert(brand) }
+        currentPage = 0
+    }
+
+    func setCategoryFilter(_ category: String, included: Bool) {
+        if included { excludedCategories.remove(category) } else { excludedCategories.insert(category) }
+        currentPage = 0
+    }
+
+    func setPriceFilterEnabled(_ enabled: Bool) {
+        priceFilterEnabled = enabled
+        currentPage = 0
+    }
+
+    func setMinimumPrice(_ value: Double) {
+        filterMinimumPrice = min(value, filterMaximumPrice)
+        currentPage = 0
+    }
+
+    func setMaximumPrice(_ value: Double) {
+        filterMaximumPrice = max(value, filterMinimumPrice)
+        currentPage = 0
+    }
+
+    func resetFilters() {
+        excludedBrands.removeAll()
+        excludedCategories.removeAll()
+        priceFilterEnabled = false
+        let range = cataloguePriceRange
+        filterMinimumPrice = range.lowerBound
+        filterMaximumPrice = range.upperBound
+        currentPage = 0
     }
 
     func previousPage() {
@@ -498,6 +577,12 @@ final class CatalogueStore: ObservableObject {
                 $0.localizedStandardCompare($1) == .orderedAscending
             }
             omittedProductIDs.removeAll()
+            excludedBrands.removeAll()
+            excludedCategories.removeAll()
+            priceFilterEnabled = false
+            let range = cataloguePriceRange
+            filterMinimumPrice = range.lowerBound
+            filterMaximumPrice = range.upperBound
             previewSelection = nil
             currentPage = 0
             errorMessage = nil

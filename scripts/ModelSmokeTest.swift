@@ -10,6 +10,8 @@ struct ModelSmokeTest {
         precondition(store.inspectorMode == .layout)
         store.inspectorMode = .theme
         precondition(store.inspectorMode == .theme)
+        store.inspectorMode = .filters
+        precondition(store.inspectorMode == .filters)
         store.inspectorMode = .layout
         precondition(store.categoryPageRanges.count == 10)
         precondition(store.pageCount == 28)
@@ -52,11 +54,30 @@ struct ModelSmokeTest {
         store.restore(product)
         precondition(store.includedProducts.count == 253)
 
+        if let brand = store.products.first(where: { !$0.brand.isEmpty })?.brand {
+            let brandCount = store.products.filter { $0.brand == brand }.count
+            store.setBrand(brand, included: false)
+            precondition(store.includedProducts.count == 253 - brandCount)
+            store.setBrand(brand, included: true)
+        }
+
+        let filteredCategory = store.products[0].catalogueCategory
+        let categoryCount = store.products.filter { $0.catalogueCategory == filteredCategory }.count
+        store.setCategoryFilter(filteredCategory, included: false)
+        precondition(store.includedProducts.count == 253 - categoryCount)
+        store.resetFilters()
+        precondition(store.includedProducts.count == 253)
+
+        store.setMaximumPrice(store.cataloguePriceRange.lowerBound)
+        store.setPriceFilterEnabled(true)
+        precondition(store.includedProducts.count < 253)
+        store.resetFilters()
+
         store.setGroupByCategory(false)
         store.setSortOrder(.priceLow)
         precondition(store.currentCataloguePage.category == nil)
         precondition(store.pageCount == 22)
 
-        print("Model checks passed: two-mode settings, eight presets, category colors, theme round-trip, omission, sorting, and pagination.")
+        print("Model checks passed: three-mode settings, brand/category/price filters, eight presets, category colors, theme round-trip, omission, sorting, and pagination.")
     }
 }

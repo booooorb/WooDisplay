@@ -105,6 +105,10 @@ private struct CatalogueTopBar: View {
                     Text(store.sourceName.isEmpty ? "No CSV selected" : store.sourceName)
                     Text("•")
                     Text("\(store.includedProducts.count) included")
+                    if store.filteredOutCount > 0 {
+                        Text("•")
+                        Text("\(store.filteredOutCount) filtered out")
+                    }
                     if !store.omittedProductIDs.isEmpty {
                         Text("•")
                         Text("\(store.omittedProductIDs.count) omitted")
@@ -146,6 +150,8 @@ private struct SettingsInspector: View {
     @EnvironmentObject private var store: CatalogueStore
     @State private var showCategoryRanges = true
     @State private var showOmittedProducts = false
+    @State private var brandSearch = ""
+    @State private var categorySearch = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -170,6 +176,14 @@ private struct SettingsInspector: View {
                             contentSection
                             layoutSection
                             organizationSection
+                        }
+                    case .filters:
+                        VStack(alignment: .leading, spacing: 19) {
+                            filterSummarySection
+                            brandFilterSection
+                            priceFilterSection
+                            categoryFilterSection
+                            omittedProductsSection
                         }
                     case .theme:
                         VStack(alignment: .leading, spacing: 19) {
@@ -271,7 +285,7 @@ private struct SettingsInspector: View {
                             HStack(spacing: 9) {
                                 Text("Logo size")
                                     .font(.system(size: 10.5))
-                                Slider(value: $store.companyLogoSize, in: 18...40, step: 1)
+                                Slider(value: $store.companyLogoSize, in: 18...48, step: 1)
                                 Text("\(Int(store.companyLogoSize)) pt")
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.secondary)
@@ -343,36 +357,201 @@ private struct SettingsInspector: View {
                     }
                 }
 
-                if !store.omittedProductIDs.isEmpty {
-                    Divider()
-                    DisclosureGroup(isExpanded: $showOmittedProducts) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            ForEach(store.omittedProducts) { product in
-                                HStack(spacing: 6) {
-                                    Text(product.name)
-                                        .font(.system(size: 10.5))
-                                        .lineLimit(1)
-                                    Spacer()
-                                    Button("Restore") { store.restore(product) }
-                                        .font(.system(size: 9.5))
-                                        .buttonStyle(.link)
-                                }
+            }
+        }
+    }
+
+    private var filterSummarySection: some View {
+        InspectorSection(title: "CATALOGUE FILTERS", subtitle: "Filters apply before pagination and PDF export.") {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(store.includedProducts.count) products included")
+                        .font(.system(size: 11.5, weight: .semibold))
+                    Text("\(store.filteredOutCount) filtered out · \(store.omittedProductIDs.count) omitted")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Reset filters") { store.resetFilters() }
+                    .font(.system(size: 10))
+                    .buttonStyle(.link)
+                    .disabled(store.activeFilterCount == 0)
+            }
+        }
+    }
+
+    private var brandFilterSection: some View {
+        InspectorSection(title: "BRANDS", subtitle: "Turn off a brand to remove all its products.") {
+            VStack(alignment: .leading, spacing: 8) {
+                TextField("Search brands", text: $brandSearch)
+                    .textFieldStyle(.roundedBorder)
+
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(filteredBrands, id: \.name) { option in
+                            filterOptionRow(
+                                name: option.name.isEmpty ? "No brand" : option.name,
+                                count: option.count,
+                                included: !store.excludedBrands.contains(option.name),
+                                onChange: { store.setBrand(option.name, included: $0) }
+                            )
+                        }
+                    }
+                }
+                .frame(maxHeight: 210)
+                .background(AppPalette.controlSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: 6).stroke(AppPalette.border) }
+            }
+        }
+    }
+
+    private var priceFilterSection: some View {
+        InspectorSection(title: "PRICE", subtitle: "Limit the catalogue to a Canadian-dollar range.") {
+            VStack(alignment: .leading, spacing: 9) {
+                ContentToggle(
+                    "Use price range",
+                    isOn: Binding(
+                        get: { store.priceFilterEnabled },
+                        set: { store.setPriceFilterEnabled($0) }
+                    )
+                )
+
+                if store.priceFilterEnabled {
+                    let range = store.cataloguePriceRange
+                    HStack {
+                        Text("Minimum")
+                        Spacer()
+                        Text(store.filterMinimumPrice, format: .currency(code: "CAD"))
+                            .monospacedDigit()
+                    }
+                    .font(.system(size: 10.5))
+                    Slider(
+                        value: Binding(
+                            get: { store.filterMinimumPrice },
+                            set: { store.setMinimumPrice($0) }
+                        ),
+                        in: range,
+                        step: 0.25
+                    )
+
+                    HStack {
+                        Text("Maximum")
+                        Spacer()
+                        Text(store.filterMaximumPrice, format: .currency(code: "CAD"))
+                            .monospacedDigit()
+                    }
+                    .font(.system(size: 10.5))
+                    Slider(
+                        value: Binding(
+                            get: { store.filterMaximumPrice },
+                            set: { store.setMaximumPrice($0) }
+                        ),
+                        in: range,
+                        step: 0.25
+                    )
+                    Text("Products without a price are excluded while this filter is active.")
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var categoryFilterSection: some View {
+        InspectorSection(title: "CATEGORIES", subtitle: "Turn off categories you do not want to publish.") {
+            VStack(alignment: .leading, spacing: 8) {
+                TextField("Search categories", text: $categorySearch)
+                    .textFieldStyle(.roundedBorder)
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(filteredCategories, id: \.name) { option in
+                            filterOptionRow(
+                                name: option.name,
+                                count: option.count,
+                                included: !store.excludedCategories.contains(option.name),
+                                onChange: { store.setCategoryFilter(option.name, included: $0) }
+                            )
+                        }
+                    }
+                }
+                .frame(maxHeight: 170)
+                .background(AppPalette.controlSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: 6).stroke(AppPalette.border) }
+            }
+        }
+    }
+
+    private var omittedProductsSection: some View {
+        InspectorSection(title: "OMITTED PRODUCTS", subtitle: "Restore products removed from the PDF preview.") {
+            if store.omittedProducts.isEmpty {
+                Text("No products have been omitted.")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+            } else {
+                DisclosureGroup(isExpanded: $showOmittedProducts) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        ForEach(store.omittedProducts) { product in
+                            HStack(spacing: 6) {
+                                Text(product.name)
+                                    .font(.system(size: 10.5))
+                                    .lineLimit(1)
+                                Spacer()
+                                Button("Restore") { store.restore(product) }
+                                    .font(.system(size: 9.5))
+                                    .buttonStyle(.link)
                             }
                         }
-                        .padding(.top, 5)
-                    } label: {
-                        HStack {
-                            Text("\(store.omittedProductIDs.count) omitted")
-                                .font(.system(size: 11.5, weight: .medium))
-                            Spacer()
-                            Button("Restore all") { store.restoreAllProducts() }
-                                .font(.system(size: 10))
-                                .buttonStyle(.link)
-                        }
+                    }
+                    .padding(.top, 6)
+                } label: {
+                    HStack {
+                        Text("\(store.omittedProductIDs.count) omitted")
+                            .font(.system(size: 11.5, weight: .medium))
+                        Spacer()
+                        Button("Restore all") { store.restoreAllProducts() }
+                            .font(.system(size: 10))
+                            .buttonStyle(.link)
                     }
                 }
             }
         }
+    }
+
+    private var filteredBrands: [(name: String, count: Int)] {
+        guard !brandSearch.isEmpty else { return store.availableBrands }
+        return store.availableBrands.filter {
+            $0.name.localizedCaseInsensitiveContains(brandSearch)
+        }
+    }
+
+    private var filteredCategories: [(name: String, count: Int)] {
+        guard !categorySearch.isEmpty else { return store.availableCategories }
+        return store.availableCategories.filter {
+            $0.name.localizedCaseInsensitiveContains(categorySearch)
+        }
+    }
+
+    private func filterOptionRow(
+        name: String,
+        count: Int,
+        included: Bool,
+        onChange: @escaping (Bool) -> Void
+    ) -> some View {
+        Toggle(isOn: Binding(get: { included }, set: { value in onChange(value) })) {
+            HStack(spacing: 6) {
+                Text(name).lineLimit(1)
+                Spacer()
+                Text("\(count)")
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .font(.system(size: 10.5))
+        }
+        .toggleStyle(.checkbox)
+        .padding(.horizontal, 8)
+        .frame(height: 27)
     }
 
     private var themeSection: some View {

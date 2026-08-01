@@ -128,6 +128,7 @@ enum CatalogueLayoutStyle: String, Codable, Sendable {
 
 enum SettingsInspectorMode: String, CaseIterable, Identifiable, Sendable {
     case layout
+    case filters
     case theme
 
     var id: String { rawValue }
@@ -135,6 +136,7 @@ enum SettingsInspectorMode: String, CaseIterable, Identifiable, Sendable {
     var icon: String {
         switch self {
         case .layout: "rectangle.3.group"
+        case .filters: "line.3.horizontal.decrease.circle"
         case .theme: "paintpalette"
         }
     }

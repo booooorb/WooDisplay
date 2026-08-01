@@ -52,7 +52,8 @@ The Control-click step is required only for the first launch because this downlo
 - Product ordering by category, name, or price
 - Click any preview product to omit it, with individual or bulk restore controls
 - Adjustable 6, 9, 12, or 16 products per page
-- Separate **Layout** and **Theme** inspector modes for a cleaner workflow
+- Separate **Layout**, **Filters**, and **Theme** inspector modes for a cleaner workflow
+- Catalogue-wide brand, category, and price filters applied before pagination and PDF export
 - Native macOS light and dark appearance support for the application interface
 - Eight preset designs: Studio, Editorial, Poster, Gallery, Nordic, Midnight, Terracotta, and Mono
 - Thirteen font choices

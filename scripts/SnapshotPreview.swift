@@ -15,6 +15,7 @@ struct SnapshotPreview {
         let tallLayout = CommandLine.arguments.contains("tall")
         let showCategoryColors = CommandLine.arguments.contains("categorycolors")
         let showThemeMode = CommandLine.arguments.contains("thememode")
+        let showFilterMode = CommandLine.arguments.contains("filtermode")
         let useDarkAppearance = CommandLine.arguments.contains("dark")
         let logoPath = CommandLine.arguments
             .first { $0.hasPrefix("logo=") }
@@ -55,6 +56,8 @@ struct SnapshotPreview {
         }
         if showThemeMode || showCategoryColors {
             store.inspectorMode = .theme
+        } else if showFilterMode {
+            store.inspectorMode = .filters
         }
         let rootView = CatalogueView()
             .environmentObject(store)
@@ -88,7 +91,7 @@ struct SnapshotPreview {
             if let data = bitmap.representation(using: .png, properties: [:]) {
                 let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
                     .appendingPathComponent(
-                        "tmp/app-render-\(requestedTheme?.rawValue ?? "studio")\(logoPath == nil ? "" : "-company-logo")\(showPopover ? "-popover" : "")\(showThemeMode ? "-theme-mode" : "")\(showCategoryColors ? "-category-colors" : "")\(useDarkAppearance ? "-dark" : "-light")\(tallLayout ? "-tall" : "").png"
+                        "tmp/app-render-\(requestedTheme?.rawValue ?? "studio")\(logoPath == nil ? "" : "-company-logo")\(showPopover ? "-popover" : "")\(showThemeMode ? "-theme-mode" : "")\(showFilterMode ? "-filter-mode" : "")\(showCategoryColors ? "-category-colors" : "")\(useDarkAppearance ? "-dark" : "-light")\(tallLayout ? "-tall" : "").png"
                     )
                 try? FileManager.default.createDirectory(
                     at: output.deletingLastPathComponent(),

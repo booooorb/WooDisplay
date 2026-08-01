@@ -234,7 +234,7 @@ enum PDFCatalogueExporter {
             : "CATEGORY PAGE \(page.pageInCategory) OF \(page.categoryPageCount)"
 
         let hasLogo = settings.companyLogoData.flatMap(NSImage.init(data:)) != nil
-        let logoSize = CGFloat(min(40, max(18, settings.companyLogoSize)))
+        let logoSize = CGFloat(min(48, max(18, settings.companyLogoSize)))
         if let logoData = settings.companyLogoData {
             drawCompanyLogo(
                 data: logoData,
