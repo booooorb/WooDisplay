@@ -11,6 +11,10 @@ output/
 exports/
 WooDisplay-Theme*.json
 
+# Public, data-free packaged application
+dist/*
+!dist/WooDisplay-macOS-universal.zip
+
 # Swift and Xcode build output
 .build/
 .build-*/

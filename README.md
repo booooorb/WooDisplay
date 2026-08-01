@@ -8,7 +8,13 @@
   A compact native catalogue studio for WooCommerce product exports.
 </p>
 
-WooDisplay is a compact native macOS studio for turning a WooCommerce product-export CSV into a printable PDF catalogue. The supplied catalogue is bundled into the app, and another WooCommerce export can be loaded at any time with **Import CSV**.
+<p align="center">
+  <a href="https://github.com/booooorb/WooDisplay/raw/refs/heads/main/dist/WooDisplay-macOS-universal.zip"><strong>Download WooDisplay for macOS</strong></a>
+  <br>
+  <sub>Universal app for Apple Silicon and Intel Macs · macOS 13 or later</sub>
+</p>
+
+WooDisplay is a compact native macOS studio for turning a WooCommerce product-export CSV into a printable PDF catalogue. Import a WooCommerce export, adjust the layout and theme, then export a print-ready PDF.
 
 ## Interface
 
@@ -26,9 +32,13 @@ Choose the product information shown, set pagination, organize category-only pag
 
 ## Launch
 
-Double-click **WooDisplay.app**. The catalogue opens immediately with the supplied product data.
+1. Click **Download WooDisplay for macOS** above.
+2. Open `WooDisplay-macOS-universal.zip` from Downloads.
+3. Drag **WooDisplay.app** into Applications if you want to keep it there.
+4. Control-click **WooDisplay.app**, choose **Open**, then confirm **Open**.
+5. Click **Import CSV** and choose your WooCommerce product export.
 
-If macOS warns that the app is from an unidentified developer, Control-click the app, choose **Open**, then confirm **Open**. The app is built locally and is not code-signed for public distribution.
+The Control-click step is required only for the first launch because this downloadable build is ad-hoc signed rather than Apple-notarized. The public download intentionally contains no private CSV files or generated catalogues.
 
 ## Features
 
