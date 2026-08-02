@@ -182,6 +182,7 @@ private struct SettingsInspector: View {
                             filterSummarySection
                             brandFilterSection
                             priceFilterSection
+                            stockFilterSection
                             categoryFilterSection
                             omittedProductsSection
                         }
@@ -479,6 +480,63 @@ private struct SettingsInspector: View {
                 .background(AppPalette.controlSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay { RoundedRectangle(cornerRadius: 6).stroke(AppPalette.border) }
+            }
+        }
+    }
+
+    private var stockFilterSection: some View {
+        InspectorSection(title: "STOCK QUANTITY", subtitle: "Include products within a numeric stock range.") {
+            VStack(alignment: .leading, spacing: 9) {
+                ContentToggle(
+                    "Use stock range",
+                    isOn: Binding(
+                        get: { store.stockFilterEnabled },
+                        set: { store.setStockFilterEnabled($0) }
+                    )
+                )
+                .disabled(!store.hasNumericStockQuantities)
+
+                if !store.hasNumericStockQuantities {
+                    Text("This catalogue does not contain numeric stock quantities.")
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.secondary)
+                } else if store.stockFilterEnabled {
+                    let range = store.catalogueStockRange
+                    HStack {
+                        Text("Minimum")
+                        Spacer()
+                        Text("\(Int(store.filterMinimumStock)) units")
+                            .monospacedDigit()
+                    }
+                    .font(.system(size: 10.5))
+                    Slider(
+                        value: Binding(
+                            get: { store.filterMinimumStock },
+                            set: { store.setMinimumStock($0) }
+                        ),
+                        in: range,
+                        step: 1
+                    )
+
+                    HStack {
+                        Text("Maximum")
+                        Spacer()
+                        Text("\(Int(store.filterMaximumStock)) units")
+                            .monospacedDigit()
+                    }
+                    .font(.system(size: 10.5))
+                    Slider(
+                        value: Binding(
+                            get: { store.filterMaximumStock },
+                            set: { store.setMaximumStock($0) }
+                        ),
+                        in: range,
+                        step: 1
+                    )
+                    Text("Products without a numeric stock quantity are excluded while this filter is active.")
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

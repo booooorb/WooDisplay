@@ -73,11 +73,20 @@ struct ModelSmokeTest {
         precondition(store.includedProducts.count < 253)
         store.resetFilters()
 
+        if store.hasNumericStockQuantities {
+            store.setMaximumStock(store.catalogueStockRange.lowerBound)
+            store.setStockFilterEnabled(true)
+            precondition(store.includedProducts.allSatisfy {
+                Double($0.stockQuantity ?? Int.max) <= store.catalogueStockRange.lowerBound
+            })
+            store.resetFilters()
+        }
+
         store.setGroupByCategory(false)
         store.setSortOrder(.priceLow)
         precondition(store.currentCataloguePage.category == nil)
         precondition(store.pageCount == 22)
 
-        print("Model checks passed: three-mode settings, brand/category/price filters, twelve presets, category colors, theme round-trip, omission, sorting, and pagination.")
+        print("Model checks passed: three-mode settings, brand/category/price/stock filters, twelve presets, category colors, theme round-trip, omission, sorting, and pagination.")
     }
 }

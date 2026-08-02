@@ -46,6 +46,9 @@ final class CatalogueStore: ObservableObject {
     @Published var priceFilterEnabled = false
     @Published var filterMinimumPrice = 0.0
     @Published var filterMaximumPrice = 0.0
+    @Published var stockFilterEnabled = false
+    @Published var filterMinimumStock = 0.0
+    @Published var filterMaximumStock = 0.0
 
     @Published var selectedTheme: CatalogueThemePreset = .studio
     @Published var customAccent = CatalogueThemePreset.studio.accent
@@ -123,6 +126,10 @@ final class CatalogueStore: ObservableObject {
             guard priceFilterEnabled else { return true }
             guard let price = product.currentPrice else { return false }
             return price >= filterMinimumPrice && price <= filterMaximumPrice
+        }.filter { product in
+            guard stockFilterEnabled else { return true }
+            guard let quantity = product.stockQuantity else { return false }
+            return Double(quantity) >= filterMinimumStock && Double(quantity) <= filterMaximumStock
         }
     }
 
@@ -155,8 +162,20 @@ final class CatalogueStore: ObservableObject {
         return (prices.min() ?? 0)...(prices.max() ?? 0)
     }
 
+    var catalogueStockRange: ClosedRange<Double> {
+        let quantities = products.compactMap(\.stockQuantity).map(Double.init)
+        return (quantities.min() ?? 0)...(quantities.max() ?? 0)
+    }
+
+    var hasNumericStockQuantities: Bool {
+        products.contains { $0.stockQuantity != nil }
+    }
+
     var activeFilterCount: Int {
-        excludedBrands.count + excludedCategories.count + (priceFilterEnabled ? 1 : 0)
+        excludedBrands.count
+            + excludedCategories.count
+            + (priceFilterEnabled ? 1 : 0)
+            + (stockFilterEnabled ? 1 : 0)
     }
 
     var filteredOutCount: Int { products.count - filteredProducts.count }
@@ -368,13 +387,32 @@ final class CatalogueStore: ObservableObject {
         currentPage = 0
     }
 
+    func setStockFilterEnabled(_ enabled: Bool) {
+        stockFilterEnabled = enabled && hasNumericStockQuantities
+        currentPage = 0
+    }
+
+    func setMinimumStock(_ value: Double) {
+        filterMinimumStock = min(value.rounded(), filterMaximumStock)
+        currentPage = 0
+    }
+
+    func setMaximumStock(_ value: Double) {
+        filterMaximumStock = max(value.rounded(), filterMinimumStock)
+        currentPage = 0
+    }
+
     func resetFilters() {
         excludedBrands.removeAll()
         excludedCategories.removeAll()
         priceFilterEnabled = false
+        stockFilterEnabled = false
         let range = cataloguePriceRange
         filterMinimumPrice = range.lowerBound
         filterMaximumPrice = range.upperBound
+        let stockRange = catalogueStockRange
+        filterMinimumStock = stockRange.lowerBound
+        filterMaximumStock = stockRange.upperBound
         currentPage = 0
     }
 
@@ -580,9 +618,13 @@ final class CatalogueStore: ObservableObject {
             excludedBrands.removeAll()
             excludedCategories.removeAll()
             priceFilterEnabled = false
+            stockFilterEnabled = false
             let range = cataloguePriceRange
             filterMinimumPrice = range.lowerBound
             filterMaximumPrice = range.upperBound
+            let stockRange = catalogueStockRange
+            filterMinimumStock = stockRange.lowerBound
+            filterMaximumStock = stockRange.upperBound
             previewSelection = nil
             currentPage = 0
             errorMessage = nil

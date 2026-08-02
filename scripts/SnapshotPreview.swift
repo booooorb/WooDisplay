@@ -16,6 +16,7 @@ struct SnapshotPreview {
         let showCategoryColors = CommandLine.arguments.contains("categorycolors")
         let showThemeMode = CommandLine.arguments.contains("thememode")
         let showFilterMode = CommandLine.arguments.contains("filtermode")
+        let showStockFilter = CommandLine.arguments.contains("stockfilter")
         let useDarkAppearance = CommandLine.arguments.contains("dark")
         let logoPath = CommandLine.arguments
             .first { $0.hasPrefix("logo=") }
@@ -33,7 +34,12 @@ struct SnapshotPreview {
             store.companyLogoName = URL(fileURLWithPath: logoPath).lastPathComponent
         }
         if let logoSize {
-            store.companyLogoSize = min(40, max(18, logoSize))
+            store.companyLogoSize = min(48, max(18, logoSize))
+        }
+        if showStockFilter, store.hasNumericStockQuantities {
+            let range = store.catalogueStockRange
+            store.setMaximumStock(range.lowerBound + (range.upperBound - range.lowerBound) / 2)
+            store.setStockFilterEnabled(true)
         }
         if showPopover {
             store.omittedProductIDs = Set(store.products.prefix(2).map(\.id))
@@ -56,7 +62,7 @@ struct SnapshotPreview {
         }
         if showThemeMode || showCategoryColors {
             store.inspectorMode = .theme
-        } else if showFilterMode {
+        } else if showFilterMode || showStockFilter {
             store.inspectorMode = .filters
         }
         let rootView = CatalogueView()
@@ -91,7 +97,7 @@ struct SnapshotPreview {
             if let data = bitmap.representation(using: .png, properties: [:]) {
                 let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
                     .appendingPathComponent(
-                        "tmp/app-render-\(requestedTheme?.rawValue ?? "studio")\(logoPath == nil ? "" : "-company-logo")\(showPopover ? "-popover" : "")\(showThemeMode ? "-theme-mode" : "")\(showFilterMode ? "-filter-mode" : "")\(showCategoryColors ? "-category-colors" : "")\(useDarkAppearance ? "-dark" : "-light")\(tallLayout ? "-tall" : "").png"
+                        "tmp/app-render-\(requestedTheme?.rawValue ?? "studio")\(logoPath == nil ? "" : "-company-logo")\(showPopover ? "-popover" : "")\(showThemeMode ? "-theme-mode" : "")\(showFilterMode ? "-filter-mode" : "")\(showStockFilter ? "-stock-filter" : "")\(showCategoryColors ? "-category-colors" : "")\(useDarkAppearance ? "-dark" : "-light")\(tallLayout ? "-tall" : "").png"
                     )
                 try? FileManager.default.createDirectory(
                     at: output.deletingLastPathComponent(),
