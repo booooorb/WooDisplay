@@ -49,6 +49,7 @@ final class CatalogueStore: ObservableObject {
     @Published var stockFilterEnabled = false
     @Published var filterMinimumStock = 0.0
     @Published var filterMaximumStock = 0.0
+    @Published var excludeOutOfStock = false
 
     @Published var selectedTheme: CatalogueThemePreset = .studio
     @Published var customAccent = CatalogueThemePreset.studio.accent
@@ -127,6 +128,7 @@ final class CatalogueStore: ObservableObject {
             guard let price = product.currentPrice else { return false }
             return price >= filterMinimumPrice && price <= filterMaximumPrice
         }.filter { product in
+            guard !excludeOutOfStock || product.isInStock else { return false }
             guard stockFilterEnabled else { return true }
             guard let quantity = product.stockQuantity else { return false }
             return Double(quantity) >= filterMinimumStock && Double(quantity) <= filterMaximumStock
@@ -176,6 +178,7 @@ final class CatalogueStore: ObservableObject {
             + excludedCategories.count
             + (priceFilterEnabled ? 1 : 0)
             + (stockFilterEnabled ? 1 : 0)
+            + (excludeOutOfStock ? 1 : 0)
     }
 
     var filteredOutCount: Int { products.count - filteredProducts.count }
@@ -378,12 +381,18 @@ final class CatalogueStore: ObservableObject {
     }
 
     func setMinimumPrice(_ value: Double) {
-        filterMinimumPrice = min(value, filterMaximumPrice)
+        filterMinimumPrice = max(
+            cataloguePriceRange.lowerBound,
+            min(value, filterMaximumPrice)
+        )
         currentPage = 0
     }
 
     func setMaximumPrice(_ value: Double) {
-        filterMaximumPrice = max(value, filterMinimumPrice)
+        filterMaximumPrice = min(
+            cataloguePriceRange.upperBound,
+            max(value, filterMinimumPrice)
+        )
         currentPage = 0
     }
 
@@ -393,12 +402,23 @@ final class CatalogueStore: ObservableObject {
     }
 
     func setMinimumStock(_ value: Double) {
-        filterMinimumStock = min(value.rounded(), filterMaximumStock)
+        filterMinimumStock = max(
+            catalogueStockRange.lowerBound,
+            min(value.rounded(), filterMaximumStock)
+        )
         currentPage = 0
     }
 
     func setMaximumStock(_ value: Double) {
-        filterMaximumStock = max(value.rounded(), filterMinimumStock)
+        filterMaximumStock = min(
+            catalogueStockRange.upperBound,
+            max(value.rounded(), filterMinimumStock)
+        )
+        currentPage = 0
+    }
+
+    func setExcludeOutOfStock(_ excluded: Bool) {
+        excludeOutOfStock = excluded
         currentPage = 0
     }
 
@@ -407,6 +427,7 @@ final class CatalogueStore: ObservableObject {
         excludedCategories.removeAll()
         priceFilterEnabled = false
         stockFilterEnabled = false
+        excludeOutOfStock = false
         let range = cataloguePriceRange
         filterMinimumPrice = range.lowerBound
         filterMaximumPrice = range.upperBound
@@ -619,6 +640,7 @@ final class CatalogueStore: ObservableObject {
             excludedCategories.removeAll()
             priceFilterEnabled = false
             stockFilterEnabled = false
+            excludeOutOfStock = false
             let range = cataloguePriceRange
             filterMinimumPrice = range.lowerBound
             filterMaximumPrice = range.upperBound

@@ -82,11 +82,17 @@ struct ModelSmokeTest {
             store.resetFilters()
         }
 
+        let inStockCount = store.products.filter(\.isInStock).count
+        store.setExcludeOutOfStock(true)
+        precondition(store.includedProducts.count == inStockCount)
+        precondition(store.includedProducts.allSatisfy(\.isInStock))
+        store.resetFilters()
+
         store.setGroupByCategory(false)
         store.setSortOrder(.priceLow)
         precondition(store.currentCataloguePage.category == nil)
         precondition(store.pageCount == 22)
 
-        print("Model checks passed: three-mode settings, brand/category/price/stock filters, twelve presets, category colors, theme round-trip, omission, sorting, and pagination.")
+        print("Model checks passed: three-mode settings, brand/category/price/stock filters, out-of-stock exclusion, twelve presets, category colors, theme round-trip, omission, sorting, and pagination.")
     }
 }

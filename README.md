@@ -53,7 +53,7 @@ The Control-click step is required only for the first launch because this downlo
 - Click any preview product to omit it, with individual or bulk restore controls
 - Adjustable 6, 9, 12, or 16 products per page
 - Separate **Layout**, **Filters**, and **Theme** inspector modes for a cleaner workflow
-- Catalogue-wide brand, category, price, and stock-quantity filters applied before pagination and PDF export
+- Catalogue-wide brand, category, price, stock-quantity, and out-of-stock filters applied before pagination and PDF export
 - Native macOS light and dark appearance support for the application interface
 - Twelve preset designs: Studio, Editorial, Poster, Gallery, Nordic, Midnight, Terracotta, Mono, Coastal, Lavender, Espresso, and Citrus
 - Thirteen font choices

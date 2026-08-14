@@ -420,36 +420,21 @@ private struct SettingsInspector: View {
 
                 if store.priceFilterEnabled {
                     let range = store.cataloguePriceRange
-                    HStack {
-                        Text("Minimum")
-                        Spacer()
-                        Text(store.filterMinimumPrice, format: .currency(code: "CAD"))
-                            .monospacedDigit()
-                    }
-                    .font(.system(size: 10.5))
-                    Slider(
+                    numericPriceRow(
+                        label: "Minimum",
                         value: Binding(
                             get: { store.filterMinimumPrice },
                             set: { store.setMinimumPrice($0) }
                         ),
-                        in: range,
-                        step: 0.25
+                        range: range
                     )
-
-                    HStack {
-                        Text("Maximum")
-                        Spacer()
-                        Text(store.filterMaximumPrice, format: .currency(code: "CAD"))
-                            .monospacedDigit()
-                    }
-                    .font(.system(size: 10.5))
-                    Slider(
+                    numericPriceRow(
+                        label: "Maximum",
                         value: Binding(
                             get: { store.filterMaximumPrice },
                             set: { store.setMaximumPrice($0) }
                         ),
-                        in: range,
-                        step: 0.25
+                        range: range
                     )
                     Text("Products without a price are excluded while this filter is active.")
                         .font(.system(size: 9.5))
@@ -485,8 +470,18 @@ private struct SettingsInspector: View {
     }
 
     private var stockFilterSection: some View {
-        InspectorSection(title: "STOCK QUANTITY", subtitle: "Include products within a numeric stock range.") {
+        InspectorSection(title: "STOCK", subtitle: "Filter availability or enter a numeric stock range.") {
             VStack(alignment: .leading, spacing: 9) {
+                ContentToggle(
+                    "Exclude out-of-stock products",
+                    isOn: Binding(
+                        get: { store.excludeOutOfStock },
+                        set: { store.setExcludeOutOfStock($0) }
+                    )
+                )
+
+                Divider()
+
                 ContentToggle(
                     "Use stock range",
                     isOn: Binding(
@@ -503,36 +498,21 @@ private struct SettingsInspector: View {
                 } else {
                     let range = store.catalogueStockRange
                     VStack(alignment: .leading, spacing: 9) {
-                        HStack {
-                            Text("Minimum")
-                            Spacer()
-                            Text("\(Int(store.filterMinimumStock)) units")
-                                .monospacedDigit()
-                        }
-                        .font(.system(size: 10.5))
-                        Slider(
+                        numericStockRow(
+                            label: "Minimum",
                             value: Binding(
                                 get: { store.filterMinimumStock },
                                 set: { store.setMinimumStock($0) }
                             ),
-                            in: range,
-                            step: 1
+                            range: range
                         )
-
-                        HStack {
-                            Text("Maximum")
-                            Spacer()
-                            Text("\(Int(store.filterMaximumStock)) units")
-                                .monospacedDigit()
-                        }
-                        .font(.system(size: 10.5))
-                        Slider(
+                        numericStockRow(
+                            label: "Maximum",
                             value: Binding(
                                 get: { store.filterMaximumStock },
                                 set: { store.setMaximumStock($0) }
                             ),
-                            in: range,
-                            step: 1
+                            range: range
                         )
                     }
                     .disabled(!store.stockFilterEnabled)
@@ -579,6 +559,59 @@ private struct SettingsInspector: View {
                     }
                 }
             }
+        }
+    }
+
+    private func numericPriceRow(
+        label: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>
+    ) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 10.5))
+            Spacer()
+            Text("CA$")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            TextField(
+                label,
+                value: value,
+                format: .number.precision(.fractionLength(2))
+            )
+            .textFieldStyle(.roundedBorder)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 72)
+            Stepper("", value: value, in: range, step: 0.25)
+                .labelsHidden()
+                .controlSize(.small)
+        }
+    }
+
+    private func numericStockRow(
+        label: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>
+    ) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 10.5))
+            Spacer()
+            TextField(
+                label,
+                value: value,
+                format: .number.precision(.fractionLength(0))
+            )
+            .textFieldStyle(.roundedBorder)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 72)
+            Text("units")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .frame(width: 30, alignment: .leading)
+            Stepper("", value: value, in: range, step: 1)
+                .labelsHidden()
+                .controlSize(.small)
         }
     }
 
