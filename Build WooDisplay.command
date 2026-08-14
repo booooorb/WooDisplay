@@ -36,6 +36,9 @@ lipo -create \
 chmod 755 "$MACOS_DIR/WooDisplay"
 install -m 644 "$CSV_SOURCE" "$RESOURCES_DIR/catalogue.csv"
 install -m 644 "$PROJECT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
+BUILD_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+/usr/libexec/PlistBuddy -c "Add :WooDisplayCommit string $BUILD_COMMIT" "$CONTENTS_DIR/Info.plist" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c "Set :WooDisplayCommit $BUILD_COMMIT" "$CONTENTS_DIR/Info.plist"
 
 if [[ -f "$ICON_SOURCE" ]]; then
   install -m 644 "$ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"

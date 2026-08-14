@@ -40,6 +40,8 @@ Choose the product information shown, set pagination, organize category-only pag
 
 The Control-click step is required only for the first launch because this downloadable build is ad-hoc signed rather than Apple-notarized. The public download intentionally contains no private CSV files or generated catalogues.
 
+WooDisplay can install updates without an administrator prompt when the app is kept in a user-writable folder such as `~/Applications`. A copy in a protected system Applications folder may require macOS authorization. Eliminating the first-open security confirmation for downloaded builds requires a Developer ID-signed and Apple-notarized release.
+
 ## Features
 
 - Shows published WooCommerce products and combines product variations into their parent product

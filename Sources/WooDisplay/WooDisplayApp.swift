@@ -3,12 +3,32 @@ import SwiftUI
 @main
 struct WooDisplayApp: App {
     @StateObject private var store = CatalogueStore()
+    @StateObject private var updater = WooDisplayUpdater.shared
 
     var body: some Scene {
         WindowGroup("WooDisplay") {
             CatalogueView()
                 .environmentObject(store)
+                .environmentObject(updater)
                 .frame(minWidth: 1_050, minHeight: 700)
+                .task { updater.checkAutomatically() }
+                .alert("WooDisplay update available", isPresented: Binding(
+                    get: { updater.availableCommit != nil },
+                    set: { if !$0 { updater.availableCommit = nil } }
+                )) {
+                    Button("Download and Install") { updater.downloadAndInstall() }
+                    Button("Later", role: .cancel) { updater.availableCommit = nil }
+                } message: {
+                    Text("A newer build (\(updater.shortAvailableCommit)) is available from GitHub. WooDisplay will relaunch after installing it.")
+                }
+                .alert("Software Update", isPresented: Binding(
+                    get: { updater.message != nil },
+                    set: { if !$0 { updater.message = nil } }
+                )) {
+                    Button("OK", role: .cancel) { updater.message = nil }
+                } message: {
+                    Text(updater.message ?? "")
+                }
         }
         .defaultSize(width: 1_400, height: 880)
         .windowToolbarStyle(.unifiedCompact)
@@ -28,6 +48,13 @@ struct WooDisplayApp: App {
                     .keyboardShortcut(.leftArrow, modifiers: [.command])
                 Button("Next Page") { store.nextPage() }
                     .keyboardShortcut(.rightArrow, modifiers: [.command])
+            }
+
+            CommandGroup(after: .appInfo) {
+                Button(updater.isChecking ? "Checking for Updates…" : "Check for Updates…") {
+                    updater.checkForUpdates()
+                }
+                .disabled(updater.isChecking)
             }
         }
     }
