@@ -117,6 +117,11 @@ struct ModelSmokeTest {
         let workspaceURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("tmp/qa/WooDisplay-Workspace.json")
         try store.saveWorkspace(to: workspaceURL)
+        precondition(!store.hasUnsavedWorkspace)
+        store.catalogueTitle = "Unsaved Catalogue Change"
+        precondition(store.hasUnsavedWorkspace)
+        try store.loadWorkspace(from: workspaceURL)
+        precondition(!store.hasUnsavedWorkspace)
 
         let restored = CatalogueStore()
         try restored.loadWorkspace(from: workspaceURL)

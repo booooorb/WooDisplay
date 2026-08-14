@@ -1,7 +1,19 @@
+import AppKit
 import SwiftUI
+
+@MainActor
+final class WooDisplayAppDelegate: NSObject, NSApplicationDelegate {
+    weak var store: CatalogueStore?
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let store else { return .terminateNow }
+        return store.confirmClosingWorkspace() ? .terminateNow : .terminateCancel
+    }
+}
 
 @main
 struct WooDisplayApp: App {
+    @NSApplicationDelegateAdaptor(WooDisplayAppDelegate.self) private var appDelegate
     @StateObject private var store = CatalogueStore()
     @StateObject private var updater = WooDisplayUpdater.shared
 
@@ -11,7 +23,10 @@ struct WooDisplayApp: App {
                 .environmentObject(store)
                 .environmentObject(updater)
                 .frame(minWidth: 1_050, minHeight: 700)
-                .task { updater.checkAutomatically() }
+                .task {
+                    appDelegate.store = store
+                    updater.checkAutomatically()
+                }
                 .alert("WooDisplay update available", isPresented: Binding(
                     get: { updater.availableCommit != nil },
                     set: { if !$0 { updater.availableCommit = nil } }

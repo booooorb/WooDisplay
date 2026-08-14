@@ -16,6 +16,7 @@ struct CatalogueView: View {
             }
         }
         .background(AppPalette.window)
+        .background(WindowCloseGuard(store: store))
         .overlay { exportOverlay }
         .alert(
             "Catalogue could not be loaded",
@@ -98,6 +99,69 @@ struct CatalogueView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .shadow(color: .black.opacity(0.16), radius: 24, y: 8)
             }
+        }
+    }
+}
+
+private struct WindowCloseGuard: NSViewRepresentable {
+    let store: CatalogueStore
+
+    func makeCoordinator() -> Coordinator { Coordinator(store: store) }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { context.coordinator.attach(to: view.window) }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        context.coordinator.store = store
+        DispatchQueue.main.async { context.coordinator.attach(to: view.window) }
+    }
+
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) {
+        coordinator.detach()
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSWindowDelegate {
+        var store: CatalogueStore
+        private weak var window: NSWindow?
+        nonisolated(unsafe) private weak var previousDelegate: NSWindowDelegate?
+
+        init(store: CatalogueStore) {
+            self.store = store
+        }
+
+        func attach(to window: NSWindow?) {
+            guard let window, window.delegate !== self else { return }
+            detach()
+            self.window = window
+            previousDelegate = window.delegate
+            window.delegate = self
+        }
+
+        func detach() {
+            if window?.delegate === self {
+                window?.delegate = previousDelegate
+            }
+            window = nil
+            previousDelegate = nil
+        }
+
+        func windowShouldClose(_ sender: NSWindow) -> Bool {
+            store.confirmClosingWorkspace()
+        }
+
+        override func responds(to selector: Selector!) -> Bool {
+            super.responds(to: selector) || previousDelegate?.responds(to: selector) == true
+        }
+
+        override func forwardingTarget(for selector: Selector!) -> Any? {
+            if previousDelegate?.responds(to: selector) == true {
+                return previousDelegate
+            }
+            return super.forwardingTarget(for: selector)
         }
     }
 }

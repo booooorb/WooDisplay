@@ -16,6 +16,8 @@ enum ThemeSettingsError: LocalizedError {
 
 @MainActor
 final class CatalogueStore: ObservableObject {
+    private var savedWorkspaceSnapshot: Data?
+    private var workspaceURL: URL?
     @Published private(set) var products: [Product] = []
     @Published private(set) var sourceName = ""
     @Published var currentPage = 0
@@ -568,7 +570,10 @@ final class CatalogueStore: ObservableObject {
     func saveWorkspace(to url: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try encoder.encode(makeWorkspaceDocument()).write(to: url, options: .atomic)
+        let document = makeWorkspaceDocument()
+        try encoder.encode(document).write(to: url, options: .atomic)
+        savedWorkspaceSnapshot = try workspaceSnapshot(for: document)
+        workspaceURL = url
     }
 
     func loadWorkspace(from url: URL) throws {
@@ -580,6 +585,72 @@ final class CatalogueStore: ObservableObject {
             throw ThemeSettingsError.unsupportedVersion(document.version)
         }
         applyWorkspaceDocument(document)
+        savedWorkspaceSnapshot = try workspaceSnapshot(for: document)
+        workspaceURL = url
+    }
+
+    var hasUnsavedWorkspace: Bool {
+        guard !products.isEmpty,
+              let current = try? workspaceSnapshot(for: makeWorkspaceDocument()) else {
+            return false
+        }
+        return current != savedWorkspaceSnapshot
+    }
+
+    func saveWorkspaceBeforeClosing() -> Bool {
+        if let workspaceURL {
+            do {
+                try saveWorkspace(to: workspaceURL)
+                return true
+            } catch {
+                workspaceStatusMessage = "The workspace could not be saved: \(error.localizedDescription)"
+                return false
+            }
+        }
+
+        let panel = NSSavePanel()
+        panel.title = "Save WooDisplay workspace before closing"
+        panel.message = "Choose where to save this complete workspace."
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = "WooDisplay-Workspace.json"
+        panel.prompt = "Save"
+        guard panel.runModal() == .OK, let url = panel.url else { return false }
+
+        do {
+            try saveWorkspace(to: url)
+            return true
+        } catch {
+            workspaceStatusMessage = "The workspace could not be saved: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    func confirmClosingWorkspace() -> Bool {
+        guard hasUnsavedWorkspace else { return true }
+
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Save changes to this WooDisplay workspace?"
+        alert.informativeText = "Your catalogue, layout, filters, omissions, logo, and theme have unsaved changes."
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Don’t Save")
+        alert.addButton(withTitle: "Cancel")
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            return saveWorkspaceBeforeClosing()
+        case .alertSecondButtonReturn:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func workspaceSnapshot(for document: WooDisplayWorkspaceDocument) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return try encoder.encode(document)
     }
 
     func makeWorkspaceDocument() -> WooDisplayWorkspaceDocument {
