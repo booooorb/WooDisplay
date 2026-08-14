@@ -173,9 +173,9 @@ private struct SettingsInspector: View {
                     switch store.inspectorMode {
                     case .layout:
                         VStack(alignment: .leading, spacing: 19) {
+                            sellerInformationSection
                             contentSection
                             layoutSection
-                            sellerInformationSection
                             organizationSection
                         }
                     case .filters:
