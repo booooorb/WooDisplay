@@ -75,7 +75,7 @@ struct PDFPagePreview: View {
     let pageCount: Int
     let settings: CatalogueSettingsSnapshot
     var selectedProductID: String?
-    var onSelectProduct: ((Product) -> Void)?
+    var onOmitProduct: ((Product) -> Void)?
     var onSwapProduct: ((Product) -> Void)?
 
     private let pageSize = CGSize(width: 612, height: 792)
@@ -140,23 +140,24 @@ struct PDFPagePreview: View {
                             let index = row * settings.columns + column
                             if index < page.products.count {
                                 let product = page.products[index]
-                                Button {
-                                    onSelectProduct?(product)
-                                } label: {
-                                    PreviewProductCell(
-                                        product: product,
-                                        settings: settings,
-                                        colors: colors,
-                                        isSelected: selectedProductID == product.id
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .simultaneousGesture(
-                                    TapGesture(count: 2).onEnded {
-                                        onSwapProduct?(product)
-                                    }
+                                PreviewProductCell(
+                                    product: product,
+                                    settings: settings,
+                                    colors: colors,
+                                    isSelected: selectedProductID == product.id
                                 )
-                                .help("Product options")
+                                .contentShape(Rectangle())
+                                .onTapGesture(count: 2) {
+                                    onSwapProduct?(product)
+                                }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        onOmitProduct?(product)
+                                    } label: {
+                                        Label("Omit from catalogue", systemImage: "eye.slash")
+                                    }
+                                }
+                                .help("Double-click to swap · Right-click to omit")
                                 .frame(width: cellWidth, height: cellHeight)
                             } else {
                                 Color.clear.frame(width: cellWidth, height: cellHeight)

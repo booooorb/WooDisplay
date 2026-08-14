@@ -34,6 +34,12 @@ struct WooDisplayApp: App {
         .windowToolbarStyle(.unifiedCompact)
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("Open Workspace…") { store.openWorkspace() }
+                    .keyboardShortcut("o", modifiers: [.command, .shift])
+                Button("Save Workspace As…") { store.saveWorkspace() }
+                    .keyboardShortcut("s")
+                    .disabled(store.products.isEmpty)
+                Divider()
                 Button("Import CSV…") { store.importCSV() }
                     .keyboardShortcut("o")
                 Button("Export PDF…") { store.exportPDF() }

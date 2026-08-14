@@ -132,21 +132,6 @@ private struct CatalogueTopBar: View {
 
             Spacer()
 
-            Menu {
-                Button(action: store.openWorkspace) {
-                    Label("Open Workspace…", systemImage: "folder")
-                }
-                Button(action: store.saveWorkspace) {
-                    Label("Save Workspace As…", systemImage: "square.and.arrow.down")
-                }
-                .disabled(store.products.isEmpty)
-            } label: {
-                Label("Workspace", systemImage: "shippingbox")
-                    .font(.system(size: 12.5, weight: .medium))
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-
             Button(action: store.importCSV) {
                 Label("Import CSV", systemImage: "square.and.arrow.down")
                     .font(.system(size: 12.5, weight: .medium))
@@ -1119,28 +1104,13 @@ private struct PreviewWorkspace: View {
                         pageCount: store.pageCount,
                         settings: store.settings,
                         selectedProductID: store.swapSelection?.id ?? store.previewSelection?.id,
-                        onSelectProduct: {
-                            if store.swapSelection == nil {
-                                store.previewSelection = $0
-                            }
-                        },
+                        onOmitProduct: { store.omit($0) },
                         onSwapProduct: { store.selectForSwap($0) }
                     )
                     .frame(width: 612, height: 792)
                     .scaleEffect(scale)
                     .frame(width: 612 * scale, height: 792 * scale)
                     .shadow(color: .black.opacity(0.20), radius: 18, y: 8)
-
-                    if let product = store.previewSelection {
-                        ProductOmitPopover(
-                            product: product,
-                            settings: store.settings,
-                            omit: { store.omit(product) },
-                            cancel: { store.previewSelection = nil }
-                        )
-                        .offset(y: -60)
-                        .transition(.scale(scale: 0.96).combined(with: .opacity))
-                    }
 
                     if let product = store.swapSelection {
                         Text("Selected “\(product.name)” — double-click another product to swap positions")
