@@ -104,7 +104,6 @@ struct CatalogueView: View {
 
 private struct CatalogueTopBar: View {
     @EnvironmentObject private var store: CatalogueStore
-    @EnvironmentObject private var updater: WooDisplayUpdater
 
     var body: some View {
         HStack(spacing: 14) {
@@ -132,29 +131,6 @@ private struct CatalogueTopBar: View {
             }
 
             Spacer()
-
-            Button {
-                if updater.availableCommit != nil {
-                    updater.downloadAndInstall()
-                } else {
-                    updater.checkForUpdates()
-                }
-            } label: {
-                if updater.isChecking {
-                    Label("Updating…", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 12.5, weight: .medium))
-                } else if updater.availableCommit != nil {
-                    Label("Update", systemImage: "arrow.down.circle.fill")
-                        .font(.system(size: 12.5, weight: .semibold))
-                } else {
-                    Label("Updates", systemImage: "arrow.down.circle")
-                        .font(.system(size: 12.5, weight: .medium))
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .disabled(updater.isChecking)
-            .help(updater.availableCommit == nil ? "Check GitHub for a newer version" : "Download and install the available update")
 
             Menu {
                 Button(action: store.openWorkspace) {
@@ -1142,8 +1118,13 @@ private struct PreviewWorkspace: View {
                         pageNumber: store.safeCurrentPage + 1,
                         pageCount: store.pageCount,
                         settings: store.settings,
-                        selectedProductID: store.previewSelection?.id,
-                        onSelectProduct: { store.previewSelection = $0 }
+                        selectedProductID: store.swapSelection?.id ?? store.previewSelection?.id,
+                        onSelectProduct: {
+                            if store.swapSelection == nil {
+                                store.previewSelection = $0
+                            }
+                        },
+                        onSwapProduct: { store.selectForSwap($0) }
                     )
                     .frame(width: 612, height: 792)
                     .scaleEffect(scale)
@@ -1159,6 +1140,18 @@ private struct PreviewWorkspace: View {
                         )
                         .offset(y: -60)
                         .transition(.scale(scale: 0.96).combined(with: .opacity))
+                    }
+
+                    if let product = store.swapSelection {
+                        Text("Selected “\(product.name)” — double-click another product to swap positions")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.regularMaterial)
+                            .clipShape(Capsule())
+                            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+                            .offset(y: -(396 * scale) - 18)
                     }
                 }
                 Spacer(minLength: 12)

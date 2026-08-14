@@ -18,6 +18,7 @@ struct SnapshotPreview {
         let showFilterMode = CommandLine.arguments.contains("filtermode")
         let showStockFilter = CommandLine.arguments.contains("stockfilter")
         let showLongSeller = CommandLine.arguments.contains("longseller")
+        let showSwapSelection = CommandLine.arguments.contains("swap")
         let useDarkAppearance = CommandLine.arguments.contains("dark")
         let logoPath = CommandLine.arguments
             .first { $0.hasPrefix("logo=") }
@@ -48,6 +49,9 @@ struct SnapshotPreview {
             store.sellerWebsite = "https://www.veryshop.ca/catalogue/wholesale-and-independent-retail-partners"
             store.sellerEmail = "very-long-catalogue-contact-address@veryshop.ca"
             store.sellerPhone = "+1 (604) 601-1238 extension 12345"
+        }
+        if showSwapSelection, let product = store.currentCataloguePage.products.first {
+            store.selectForSwap(product)
         }
         if showPopover {
             store.omittedProductIDs = Set(store.products.prefix(2).map(\.id))
@@ -105,7 +109,7 @@ struct SnapshotPreview {
             if let data = bitmap.representation(using: .png, properties: [:]) {
                 let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
                     .appendingPathComponent(
-                        "tmp/app-render-\(requestedTheme?.rawValue ?? "studio")\(logoPath == nil ? "" : "-company-logo")\(showPopover ? "-popover" : "")\(showThemeMode ? "-theme-mode" : "")\(showFilterMode ? "-filter-mode" : "")\(showStockFilter ? "-stock-filter" : "")\(showLongSeller ? "-long-seller" : "")\(showCategoryColors ? "-category-colors" : "")\(useDarkAppearance ? "-dark" : "-light")\(tallLayout ? "-tall" : "").png"
+                        "tmp/app-render-\(requestedTheme?.rawValue ?? "studio")\(logoPath == nil ? "" : "-company-logo")\(showPopover ? "-popover" : "")\(showThemeMode ? "-theme-mode" : "")\(showFilterMode ? "-filter-mode" : "")\(showStockFilter ? "-stock-filter" : "")\(showLongSeller ? "-long-seller" : "")\(showSwapSelection ? "-swap" : "")\(showCategoryColors ? "-category-colors" : "")\(useDarkAppearance ? "-dark" : "-light")\(tallLayout ? "-tall" : "").png"
                     )
                 try? FileManager.default.createDirectory(
                     at: output.deletingLastPathComponent(),

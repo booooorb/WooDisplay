@@ -76,6 +76,7 @@ struct PDFPagePreview: View {
     let settings: CatalogueSettingsSnapshot
     var selectedProductID: String?
     var onSelectProduct: ((Product) -> Void)?
+    var onSwapProduct: ((Product) -> Void)?
 
     private let pageSize = CGSize(width: 612, height: 792)
     private var colors: CatalogueColorTheme { settings.colors(for: page.category) }
@@ -150,6 +151,11 @@ struct PDFPagePreview: View {
                                     )
                                 }
                                 .buttonStyle(.plain)
+                                .simultaneousGesture(
+                                    TapGesture(count: 2).onEnded {
+                                        onSwapProduct?(product)
+                                    }
+                                )
                                 .help("Product options")
                                 .frame(width: cellWidth, height: cellHeight)
                             } else {

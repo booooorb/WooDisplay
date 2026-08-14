@@ -45,8 +45,10 @@ final class CatalogueStore: ObservableObject {
     @Published var groupByCategory = true
     @Published var sortOrder: CatalogueSortOrder = .categoryThenName
     @Published var categoryOrder: [String] = []
+    @Published var productOrder: [String] = []
     @Published var omittedProductIDs: Set<String> = []
     @Published var previewSelection: Product?
+    @Published var swapSelection: Product?
     @Published var excludedBrands: Set<String> = []
     @Published var excludedCategories: Set<String> = []
     @Published var priceFilterEnabled = false
@@ -113,6 +115,7 @@ final class CatalogueStore: ObservableObject {
             groupByCategory: groupByCategory,
             sortOrder: sortOrder,
             categoryOrder: categoryOrder,
+            productOrder: productOrder,
             theme: selectedTheme,
             accent: isCustom ? customAccent : selectedTheme.accent,
             pageColor: isCustom ? customPageColor : selectedTheme.pageColor,
@@ -368,6 +371,32 @@ final class CatalogueStore: ObservableObject {
         clampCurrentPage()
     }
 
+    func selectForSwap(_ product: Product) {
+        previewSelection = nil
+        guard let first = swapSelection else {
+            if sortOrder != .custom {
+                productOrder = cataloguePages.flatMap(\.products).map(\.id)
+                let missing = products.map(\.id).filter { !productOrder.contains($0) }
+                productOrder.append(contentsOf: missing)
+                sortOrder = .custom
+            }
+            swapSelection = product
+            return
+        }
+
+        guard first.id != product.id else {
+            swapSelection = nil
+            return
+        }
+        guard let firstIndex = productOrder.firstIndex(of: first.id),
+              let secondIndex = productOrder.firstIndex(of: product.id) else {
+            swapSelection = nil
+            return
+        }
+        productOrder.swapAt(firstIndex, secondIndex)
+        swapSelection = nil
+    }
+
     func restore(_ product: Product) {
         omittedProductIDs.remove(product.id)
         clampCurrentPage()
@@ -581,6 +610,7 @@ final class CatalogueStore: ObservableObject {
             sellerPhone: sellerPhone,
             groupByCategory: groupByCategory,
             sortOrder: sortOrder,
+            productOrder: productOrder,
             categoryOrder: categoryOrder,
             omittedProductIDs: omittedProductIDs,
             excludedBrands: excludedBrands,
@@ -636,6 +666,7 @@ final class CatalogueStore: ObservableObject {
         sellerPhone = document.sellerPhone
         groupByCategory = document.groupByCategory
         sortOrder = document.sortOrder
+        productOrder = document.productOrder ?? document.products.map(\.id)
         categoryOrder = document.categoryOrder
         omittedProductIDs = document.omittedProductIDs
         excludedBrands = document.excludedBrands
@@ -663,6 +694,7 @@ final class CatalogueStore: ObservableObject {
         customSpacing = document.customSpacing
         categoryColorThemes = document.categoryColorThemes
         previewSelection = nil
+        swapSelection = nil
         errorMessage = nil
         currentPage = max(0, min(document.currentPage, pageCount - 1))
     }
@@ -815,6 +847,7 @@ final class CatalogueStore: ObservableObject {
             categoryOrder = Array(Set(products.map(\.catalogueCategory))).sorted {
                 $0.localizedStandardCompare($1) == .orderedAscending
             }
+            productOrder = products.map(\.id)
             omittedProductIDs.removeAll()
             excludedBrands.removeAll()
             excludedCategories.removeAll()
@@ -828,6 +861,7 @@ final class CatalogueStore: ObservableObject {
             filterMinimumStock = stockRange.lowerBound
             filterMaximumStock = stockRange.upperBound
             previewSelection = nil
+            swapSelection = nil
             currentPage = 0
             errorMessage = nil
         } catch {

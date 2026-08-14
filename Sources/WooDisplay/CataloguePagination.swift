@@ -45,7 +45,12 @@ enum CataloguePaginator {
             return groupedPages(products: products, settings: settings)
         }
 
-        let ordered = sort(products, by: settings.sortOrder, categoryOrder: settings.categoryOrder)
+        let ordered = sort(
+            products,
+            by: settings.sortOrder,
+            categoryOrder: settings.categoryOrder,
+            productOrder: settings.productOrder
+        )
         return chunk(
             ordered,
             category: nil,
@@ -97,7 +102,8 @@ enum CataloguePaginator {
             let categoryProducts = sort(
                 grouped[category] ?? [],
                 by: settings.sortOrder == .categoryThenName ? .name : settings.sortOrder,
-                categoryOrder: categoryOrder
+                categoryOrder: categoryOrder,
+                productOrder: settings.productOrder
             )
             let categoryPages = chunk(
                 categoryProducts,
@@ -114,9 +120,13 @@ enum CataloguePaginator {
     private static func sort(
         _ products: [Product],
         by order: CatalogueSortOrder,
-        categoryOrder: [String]
+        categoryOrder: [String],
+        productOrder: [String] = []
     ) -> [Product] {
         let categoryRanks = Dictionary(uniqueKeysWithValues: categoryOrder.enumerated().map {
+            ($0.element, $0.offset)
+        })
+        let productRanks = Dictionary(uniqueKeysWithValues: productOrder.enumerated().map {
             ($0.element, $0.offset)
         })
 
@@ -139,6 +149,10 @@ enum CataloguePaginator {
         case .priceHigh:
             return products.sorted {
                 ($0.currentPrice ?? -.greatestFiniteMagnitude) > ($1.currentPrice ?? -.greatestFiniteMagnitude)
+            }
+        case .custom:
+            return products.sorted {
+                (productRanks[$0.id] ?? Int.max) < (productRanks[$1.id] ?? Int.max)
             }
         }
     }

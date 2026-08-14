@@ -147,6 +147,7 @@ enum CatalogueSortOrder: String, CaseIterable, Codable, Identifiable, Sendable {
     case name
     case priceLow
     case priceHigh
+    case custom
 
     var id: String { rawValue }
 
@@ -156,6 +157,7 @@ enum CatalogueSortOrder: String, CaseIterable, Codable, Identifiable, Sendable {
         case .name: "Product name"
         case .priceLow: "Price, low to high"
         case .priceHigh: "Price, high to low"
+        case .custom: "Custom arrangement"
         }
     }
 }
@@ -468,6 +470,7 @@ struct WooDisplayWorkspaceDocument: Codable, Sendable {
 
     var groupByCategory: Bool
     var sortOrder: CatalogueSortOrder
+    var productOrder: [String]?
     var categoryOrder: [String]
     var omittedProductIDs: Set<String>
     var excludedBrands: Set<String>
@@ -521,6 +524,7 @@ struct CatalogueSettingsSnapshot: Sendable {
     let groupByCategory: Bool
     let sortOrder: CatalogueSortOrder
     let categoryOrder: [String]
+    var productOrder: [String] = []
 
     let theme: CatalogueThemePreset
     let accent: RGBAColor

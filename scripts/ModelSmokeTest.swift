@@ -97,6 +97,16 @@ struct ModelSmokeTest {
         precondition(store.currentCataloguePage.category == nil)
         precondition(store.pageCount == 22)
 
+        let firstBeforeSwap = store.currentCataloguePage.products[0]
+        let secondBeforeSwap = store.currentCataloguePage.products[1]
+        store.selectForSwap(firstBeforeSwap)
+        precondition(store.swapSelection?.id == firstBeforeSwap.id)
+        store.selectForSwap(secondBeforeSwap)
+        precondition(store.swapSelection == nil)
+        precondition(store.sortOrder == .custom)
+        precondition(store.currentCataloguePage.products[0].id == secondBeforeSwap.id)
+        precondition(store.currentCataloguePage.products[1].id == firstBeforeSwap.id)
+
         let omitted = store.products[0]
         store.omit(omitted)
         store.sellerCompany = "Workspace Seller"
@@ -118,9 +128,10 @@ struct ModelSmokeTest {
         precondition(restored.companyLogoName == "logo.png")
         precondition(restored.omittedProductIDs.contains(omitted.id))
         precondition(restored.excludeOutOfStock)
-        precondition(restored.sortOrder == .priceLow)
+        precondition(restored.sortOrder == .custom)
+        precondition(restored.productOrder == store.productOrder)
         precondition(restored.categoryColorThemes == store.categoryColorThemes)
 
-        print("Model checks passed: full workspace round-trip, filters, themes, logo data, omission, sorting, and pagination.")
+        print("Model checks passed: double-click swap order, full workspace round-trip, filters, themes, logo data, omission, sorting, and pagination.")
     }
 }
