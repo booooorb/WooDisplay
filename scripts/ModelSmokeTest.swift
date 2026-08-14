@@ -97,6 +97,30 @@ struct ModelSmokeTest {
         precondition(store.currentCataloguePage.category == nil)
         precondition(store.pageCount == 22)
 
-        print("Model checks passed: three-mode settings, brand/category/price/stock filters, out-of-stock exclusion, twelve presets, category colors, theme round-trip, omission, sorting, and pagination.")
+        let omitted = store.products[0]
+        store.omit(omitted)
+        store.sellerCompany = "Workspace Seller"
+        store.catalogueTitle = "Saved Catalogue"
+        store.companyLogoData = Data([0, 1, 2, 3])
+        store.companyLogoName = "logo.png"
+        store.excludeOutOfStock = true
+        let workspaceURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("tmp/qa/WooDisplay-Workspace.json")
+        try store.saveWorkspace(to: workspaceURL)
+
+        let restored = CatalogueStore()
+        try restored.loadWorkspace(from: workspaceURL)
+        precondition(restored.products == store.products)
+        precondition(restored.sourceName == store.sourceName)
+        precondition(restored.catalogueTitle == "Saved Catalogue")
+        precondition(restored.sellerCompany == "Workspace Seller")
+        precondition(restored.companyLogoData == Data([0, 1, 2, 3]))
+        precondition(restored.companyLogoName == "logo.png")
+        precondition(restored.omittedProductIDs.contains(omitted.id))
+        precondition(restored.excludeOutOfStock)
+        precondition(restored.sortOrder == .priceLow)
+        precondition(restored.categoryColorThemes == store.categoryColorThemes)
+
+        print("Model checks passed: full workspace round-trip, filters, themes, logo data, omission, sorting, and pagination.")
     }
 }

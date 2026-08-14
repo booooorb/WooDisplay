@@ -76,6 +76,7 @@ final class CatalogueStore: ObservableObject {
 
     @Published var errorMessage: String?
     @Published var themeStatusMessage: String?
+    @Published var workspaceStatusMessage: String?
     @Published var brandStatusMessage: String?
     @Published var isExporting = false
     @Published var exportProgress = 0.0
@@ -497,6 +498,173 @@ final class CatalogueStore: ObservableObject {
     func removeCompanyLogo() {
         companyLogoData = nil
         companyLogoName = nil
+    }
+
+    func openWorkspace() {
+        let panel = NSOpenPanel()
+        panel.title = "Open WooDisplay workspace"
+        panel.message = "Open a workspace containing the catalogue, logo, filters, omissions, layout, and theme."
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.prompt = "Open Workspace"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try loadWorkspace(from: url)
+            workspaceStatusMessage = "Opened \(url.lastPathComponent)."
+        } catch {
+            workspaceStatusMessage = "The workspace could not be opened: \(error.localizedDescription)"
+        }
+    }
+
+    func saveWorkspace() {
+        let panel = NSSavePanel()
+        panel.title = "Save WooDisplay workspace"
+        panel.message = "Save a self-contained copy with the catalogue, logo, filters, omissions, layout, and theme."
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = "WooDisplay-Workspace.json"
+        panel.prompt = "Save Workspace"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try saveWorkspace(to: url)
+            workspaceStatusMessage = "Saved a complete workspace copy to \(url.lastPathComponent)."
+        } catch {
+            workspaceStatusMessage = "The workspace could not be saved: \(error.localizedDescription)"
+        }
+    }
+
+    func saveWorkspace(to url: URL) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        try encoder.encode(makeWorkspaceDocument()).write(to: url, options: .atomic)
+    }
+
+    func loadWorkspace(from url: URL) throws {
+        let document = try JSONDecoder().decode(
+            WooDisplayWorkspaceDocument.self,
+            from: Data(contentsOf: url)
+        )
+        guard document.version <= WooDisplayWorkspaceDocument.currentVersion else {
+            throw ThemeSettingsError.unsupportedVersion(document.version)
+        }
+        applyWorkspaceDocument(document)
+    }
+
+    func makeWorkspaceDocument() -> WooDisplayWorkspaceDocument {
+        WooDisplayWorkspaceDocument(
+            sourceName: sourceName,
+            products: products,
+            currentPage: currentPage,
+            inspectorMode: inspectorMode,
+            showImage: showImage,
+            showName: showName,
+            showPrice: showPrice,
+            showSKU: showSKU,
+            showCategory: showCategory,
+            showStock: showStock,
+            showBrand: showBrand,
+            showDescription: showDescription,
+            productsPerPage: productsPerPage,
+            showPageHeader: showPageHeader,
+            catalogueTitle: catalogueTitle,
+            companyLogoData: companyLogoData,
+            companyLogoName: companyLogoName,
+            companyLogoSize: companyLogoSize,
+            showSellerInformation: showSellerInformation,
+            sellerCompany: sellerCompany,
+            sellerContactName: sellerContactName,
+            sellerWebsite: sellerWebsite,
+            sellerEmail: sellerEmail,
+            sellerPhone: sellerPhone,
+            groupByCategory: groupByCategory,
+            sortOrder: sortOrder,
+            categoryOrder: categoryOrder,
+            omittedProductIDs: omittedProductIDs,
+            excludedBrands: excludedBrands,
+            excludedCategories: excludedCategories,
+            priceFilterEnabled: priceFilterEnabled,
+            filterMinimumPrice: filterMinimumPrice,
+            filterMaximumPrice: filterMaximumPrice,
+            stockFilterEnabled: stockFilterEnabled,
+            filterMinimumStock: filterMinimumStock,
+            filterMaximumStock: filterMaximumStock,
+            excludeOutOfStock: excludeOutOfStock,
+            selectedTheme: selectedTheme,
+            customAccent: customAccent,
+            customPageColor: customPageColor,
+            customTextColor: customTextColor,
+            customPriceColor: customPriceColor,
+            customCardColor: customCardColor,
+            customImageBackgroundColor: customImageBackgroundColor,
+            customFont: customFont,
+            customLayoutStyle: customLayoutStyle,
+            customTextAlignment: customTextAlignment,
+            customImageFit: customImageFit,
+            customCornerStyle: customCornerStyle,
+            customBorderStyle: customBorderStyle,
+            customSpacing: customSpacing,
+            categoryColorThemes: categoryColorThemes
+        )
+    }
+
+    func applyWorkspaceDocument(_ document: WooDisplayWorkspaceDocument) {
+        sourceName = document.sourceName
+        products = document.products
+        inspectorMode = document.inspectorMode
+        showImage = document.showImage
+        showName = document.showName
+        showPrice = document.showPrice
+        showSKU = document.showSKU
+        showCategory = document.showCategory
+        showStock = document.showStock
+        showBrand = document.showBrand
+        showDescription = document.showDescription
+        productsPerPage = document.productsPerPage
+        showPageHeader = document.showPageHeader
+        catalogueTitle = document.catalogueTitle
+        companyLogoData = document.companyLogoData
+        companyLogoName = document.companyLogoName
+        companyLogoSize = document.companyLogoSize
+        showSellerInformation = document.showSellerInformation
+        sellerCompany = document.sellerCompany
+        sellerContactName = document.sellerContactName
+        sellerWebsite = document.sellerWebsite
+        sellerEmail = document.sellerEmail
+        sellerPhone = document.sellerPhone
+        groupByCategory = document.groupByCategory
+        sortOrder = document.sortOrder
+        categoryOrder = document.categoryOrder
+        omittedProductIDs = document.omittedProductIDs
+        excludedBrands = document.excludedBrands
+        excludedCategories = document.excludedCategories
+        priceFilterEnabled = document.priceFilterEnabled
+        filterMinimumPrice = document.filterMinimumPrice
+        filterMaximumPrice = document.filterMaximumPrice
+        stockFilterEnabled = document.stockFilterEnabled
+        filterMinimumStock = document.filterMinimumStock
+        filterMaximumStock = document.filterMaximumStock
+        excludeOutOfStock = document.excludeOutOfStock
+        selectedTheme = document.selectedTheme
+        customAccent = document.customAccent
+        customPageColor = document.customPageColor
+        customTextColor = document.customTextColor
+        customPriceColor = document.customPriceColor
+        customCardColor = document.customCardColor
+        customImageBackgroundColor = document.customImageBackgroundColor
+        customFont = document.customFont
+        customLayoutStyle = document.customLayoutStyle
+        customTextAlignment = document.customTextAlignment
+        customImageFit = document.customImageFit
+        customCornerStyle = document.customCornerStyle
+        customBorderStyle = document.customBorderStyle
+        customSpacing = document.customSpacing
+        categoryColorThemes = document.categoryColorThemes
+        previewSelection = nil
+        errorMessage = nil
+        currentPage = max(0, min(document.currentPage, pageCount - 1))
     }
 
     func importThemeSettings() {

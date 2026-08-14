@@ -53,6 +53,17 @@ struct CatalogueView: View {
             Text(store.themeStatusMessage ?? "")
         }
         .alert(
+            "WooDisplay workspace",
+            isPresented: Binding(
+                get: { store.workspaceStatusMessage != nil },
+                set: { if !$0 { store.workspaceStatusMessage = nil } }
+            )
+        ) {
+            Button("Done", role: .cancel) { store.workspaceStatusMessage = nil }
+        } message: {
+            Text(store.workspaceStatusMessage ?? "")
+        }
+        .alert(
             "Company logo",
             isPresented: Binding(
                 get: { store.brandStatusMessage != nil },
@@ -93,6 +104,7 @@ struct CatalogueView: View {
 
 private struct CatalogueTopBar: View {
     @EnvironmentObject private var store: CatalogueStore
+    @EnvironmentObject private var updater: WooDisplayUpdater
 
     var body: some View {
         HStack(spacing: 14) {
@@ -120,6 +132,44 @@ private struct CatalogueTopBar: View {
             }
 
             Spacer()
+
+            Button {
+                if updater.availableCommit != nil {
+                    updater.downloadAndInstall()
+                } else {
+                    updater.checkForUpdates()
+                }
+            } label: {
+                if updater.isChecking {
+                    Label("Updating…", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 12.5, weight: .medium))
+                } else if updater.availableCommit != nil {
+                    Label("Update", systemImage: "arrow.down.circle.fill")
+                        .font(.system(size: 12.5, weight: .semibold))
+                } else {
+                    Label("Updates", systemImage: "arrow.down.circle")
+                        .font(.system(size: 12.5, weight: .medium))
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .disabled(updater.isChecking)
+            .help(updater.availableCommit == nil ? "Check GitHub for a newer version" : "Download and install the available update")
+
+            Menu {
+                Button(action: store.openWorkspace) {
+                    Label("Open Workspace…", systemImage: "folder")
+                }
+                Button(action: store.saveWorkspace) {
+                    Label("Save Workspace As…", systemImage: "square.and.arrow.down")
+                }
+                .disabled(store.products.isEmpty)
+            } label: {
+                Label("Workspace", systemImage: "shippingbox")
+                    .font(.system(size: 12.5, weight: .medium))
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
 
             Button(action: store.importCSV) {
                 Label("Import CSV", systemImage: "square.and.arrow.down")

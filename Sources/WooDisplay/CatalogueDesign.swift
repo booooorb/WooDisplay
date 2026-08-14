@@ -126,7 +126,7 @@ enum CatalogueLayoutStyle: String, Codable, Sendable {
     case gallery
 }
 
-enum SettingsInspectorMode: String, CaseIterable, Identifiable, Sendable {
+enum SettingsInspectorMode: String, CaseIterable, Codable, Identifiable, Sendable {
     case layout
     case filters
     case theme
@@ -434,6 +434,67 @@ struct CatalogueThemeDocument: Codable, Sendable {
     var borderStyle: CatalogueBorderStyle
     var spacing: CatalogueSpacing
     var categoryColors: [String: CatalogueColorTheme]
+}
+
+struct WooDisplayWorkspaceDocument: Codable, Sendable {
+    static let currentVersion = 1
+
+    var version = currentVersion
+    var sourceName: String
+    var products: [Product]
+    var currentPage: Int
+    var inspectorMode: SettingsInspectorMode
+
+    var showImage: Bool
+    var showName: Bool
+    var showPrice: Bool
+    var showSKU: Bool
+    var showCategory: Bool
+    var showStock: Bool
+    var showBrand: Bool
+    var showDescription: Bool
+    var productsPerPage: Int
+    var showPageHeader: Bool
+    var catalogueTitle: String
+    var companyLogoData: Data?
+    var companyLogoName: String?
+    var companyLogoSize: Double
+    var showSellerInformation: Bool
+    var sellerCompany: String
+    var sellerContactName: String
+    var sellerWebsite: String
+    var sellerEmail: String
+    var sellerPhone: String
+
+    var groupByCategory: Bool
+    var sortOrder: CatalogueSortOrder
+    var categoryOrder: [String]
+    var omittedProductIDs: Set<String>
+    var excludedBrands: Set<String>
+    var excludedCategories: Set<String>
+    var priceFilterEnabled: Bool
+    var filterMinimumPrice: Double
+    var filterMaximumPrice: Double
+    var stockFilterEnabled: Bool
+    var filterMinimumStock: Double
+    var filterMaximumStock: Double
+    var excludeOutOfStock: Bool
+
+    var selectedTheme: CatalogueThemePreset
+    var customAccent: RGBAColor
+    var customPageColor: RGBAColor
+    var customTextColor: RGBAColor
+    var customPriceColor: RGBAColor
+    var customCardColor: RGBAColor
+    var customImageBackgroundColor: RGBAColor
+    var customFont: CatalogueFontFamily
+    var customLayoutStyle: CatalogueLayoutStyle
+    var customTextAlignment: CatalogueTextAlignment
+    var customImageFit: CatalogueImageFit
+    var customCornerStyle: CatalogueCornerStyle
+    var customBorderStyle: CatalogueBorderStyle
+    var customSpacing: CatalogueSpacing
+    var categoryColorThemes: [String: CatalogueColorTheme]
 }
 
 struct CatalogueSettingsSnapshot: Sendable {
