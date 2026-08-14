@@ -102,15 +102,32 @@ struct PDFPagePreview: View {
 
             Spacer(minLength: 0)
 
-            HStack {
-                Text("\(page.firstProductNumber)-\(page.lastProductNumber)")
-                Spacer()
-                Text("\(pageNumber) / \(pageCount)")
+            VStack(spacing: 1) {
+                if settings.hasSellerInformation {
+                    if !settings.sellerPrimaryLine.isEmpty {
+                        Text(settings.sellerPrimaryLine)
+                            .font(settings.font.swiftUIFont(size: 7.5, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.45)
+                    }
+                    if !settings.sellerContactLine.isEmpty {
+                        Text(settings.sellerContactLine)
+                            .font(settings.font.swiftUIFont(size: 7, weight: .regular))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.45)
+                    }
+                }
+
+                HStack {
+                    Text("\(page.firstProductNumber)-\(page.lastProductNumber)")
+                    Spacer()
+                    Text("\(pageNumber) / \(pageCount)")
+                }
+                .font(settings.font.swiftUIFont(size: 8.5, weight: .medium))
             }
-            .font(settings.font.swiftUIFont(size: 8.5, weight: .medium))
             .foregroundStyle(colors.text.swiftUIColor.opacity(0.55))
             .padding(.horizontal, 30)
-            .frame(height: 24)
+            .frame(height: settings.hasSellerInformation ? 40 : 24)
         }
         .frame(width: pageSize.width, height: pageSize.height)
         .background(colors.page.swiftUIColor)

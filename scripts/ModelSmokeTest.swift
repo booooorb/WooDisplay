@@ -8,6 +8,10 @@ struct ModelSmokeTest {
         precondition(store.products.count == 253)
         precondition(CatalogueThemePreset.allCases.filter { $0 != .custom }.count == 12)
         precondition(store.inspectorMode == .layout)
+        precondition(store.settings.hasSellerInformation)
+        precondition(store.settings.sellerPrimaryLine.contains("VeryShop Arts Inc"))
+        precondition(store.settings.sellerPrimaryLine.contains("Laura"))
+        precondition(store.settings.sellerContactLine.contains("veryshop.ca@gmail.com"))
         store.inspectorMode = .theme
         precondition(store.inspectorMode == .theme)
         store.inspectorMode = .filters

@@ -450,6 +450,12 @@ struct CatalogueSettingsSnapshot: Sendable {
     let catalogueTitle: String
     let companyLogoData: Data?
     let companyLogoSize: Double
+    let showSellerInformation: Bool
+    let sellerCompany: String
+    let sellerContactName: String
+    let sellerWebsite: String
+    let sellerEmail: String
+    let sellerPhone: String
 
     let groupByCategory: Bool
     let sortOrder: CatalogueSortOrder
@@ -470,6 +476,25 @@ struct CatalogueSettingsSnapshot: Sendable {
     let borderStyle: CatalogueBorderStyle
     let spacing: CatalogueSpacing
     let categoryColors: [String: CatalogueColorTheme]
+
+    var sellerPrimaryLine: String {
+        [
+            sellerCompany.trimmedForCatalogue,
+            sellerContactName.trimmedForCatalogue.map { "Contact: \($0)" }
+        ]
+        .compactMap { $0 }
+        .joined(separator: "  ·  ")
+    }
+
+    var sellerContactLine: String {
+        [sellerWebsite, sellerEmail, sellerPhone]
+            .compactMap(\.trimmedForCatalogue)
+            .joined(separator: "  ·  ")
+    }
+
+    var hasSellerInformation: Bool {
+        showSellerInformation && (!sellerPrimaryLine.isEmpty || !sellerContactLine.isEmpty)
+    }
 
     var globalColors: CatalogueColorTheme {
         CatalogueColorTheme(
@@ -497,5 +522,12 @@ struct CatalogueSettingsSnapshot: Sendable {
 
     var rows: Int {
         max(1, Int(ceil(Double(productsPerPage) / Double(columns))))
+    }
+}
+
+private extension String {
+    var trimmedForCatalogue: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }

@@ -61,8 +61,10 @@ The Control-click step is required only for the first launch because this downlo
 - Import and export reusable JSON theme settings, including category palettes
 - Adjustable alignment, image fit, card corners, borders, and spacing
 - Optional company logo upload with adjustable sizing for catalogue page headers; catalogues have no logo by default
+- Custom seller company, contact, website, email, and phone details with automatic footer text fitting
 - Import another WooCommerce CSV from inside the app
 - Export the previewed design as a printable PDF catalogue
+- Checks GitHub for a newer build at launch, with a manual **Check for Updates…** command in the app menu
 
 ## Create a printable catalogue
 

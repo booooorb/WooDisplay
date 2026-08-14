@@ -38,6 +38,23 @@ struct ExportSmokeTest {
             )
         }
 
+        let longSellerSettings = makeSettings(
+            theme: .coastal,
+            categoryOrder: categoryOrder,
+            sellerCompany: "VeryShop Arts Incorporated and International Wholesale Catalogue Services",
+            sellerContactName: "Laura Customer Relations and Independent Retail Partnerships",
+            sellerWebsite: "https://www.veryshop.ca/catalogue/wholesale-and-independent-retail-partners",
+            sellerEmail: "very-long-catalogue-contact-address@veryshop.ca",
+            sellerPhone: "+1 (604) 601-1238 extension 12345"
+        )
+        try PDFCatalogueExporter.render(
+            products: Array(products.prefix(12)),
+            sourceName: csvURL.lastPathComponent,
+            settings: longSellerSettings,
+            imageData: images,
+            to: output.appendingPathComponent("seller-long-details.pdf")
+        )
+
         let customSettings = CatalogueSettingsSnapshot(
             showImage: true,
             showName: true,
@@ -52,6 +69,12 @@ struct ExportSmokeTest {
             catalogueTitle: "Custom Catalogue",
             companyLogoData: nil,
             companyLogoSize: 30,
+            showSellerInformation: true,
+            sellerCompany: "VeryShop Arts Inc",
+            sellerContactName: "Laura",
+            sellerWebsite: "veryshop.ca",
+            sellerEmail: "veryshop.ca@gmail.com",
+            sellerPhone: "604-601-1238",
             groupByCategory: false,
             sortOrder: .categoryThenName,
             categoryOrder: categoryOrder,
@@ -138,7 +161,12 @@ struct ExportSmokeTest {
         theme: CatalogueThemePreset,
         groupByCategory: Bool = false,
         categoryOrder: [String],
-        categoryColors: [String: CatalogueColorTheme] = [:]
+        categoryColors: [String: CatalogueColorTheme] = [:],
+        sellerCompany: String = "VeryShop Arts Inc",
+        sellerContactName: String = "Laura",
+        sellerWebsite: String = "veryshop.ca",
+        sellerEmail: String = "veryshop.ca@gmail.com",
+        sellerPhone: String = "604-601-1238"
     ) -> CatalogueSettingsSnapshot {
         CatalogueSettingsSnapshot(
             showImage: true,
@@ -154,6 +182,12 @@ struct ExportSmokeTest {
             catalogueTitle: "Product Catalogue",
             companyLogoData: nil,
             companyLogoSize: 30,
+            showSellerInformation: true,
+            sellerCompany: sellerCompany,
+            sellerContactName: sellerContactName,
+            sellerWebsite: sellerWebsite,
+            sellerEmail: sellerEmail,
+            sellerPhone: sellerPhone,
             groupByCategory: groupByCategory,
             sortOrder: .categoryThenName,
             categoryOrder: categoryOrder,

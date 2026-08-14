@@ -175,6 +175,7 @@ private struct SettingsInspector: View {
                         VStack(alignment: .leading, spacing: 19) {
                             contentSection
                             layoutSection
+                            sellerInformationSection
                             organizationSection
                         }
                     case .filters:
@@ -360,6 +361,43 @@ private struct SettingsInspector: View {
 
             }
         }
+    }
+
+    private var sellerInformationSection: some View {
+        InspectorSection(title: "SELLER INFORMATION", subtitle: "Shown in a compact footer on every catalogue page.") {
+            VStack(alignment: .leading, spacing: 8) {
+                ContentToggle("Show seller information", isOn: $store.showSellerInformation)
+
+                sellerField("Company", placeholder: "Company name", text: $store.sellerCompany)
+                sellerField("Contact", placeholder: "Contact name", text: $store.sellerContactName)
+                sellerField("Website", placeholder: "Website", text: $store.sellerWebsite)
+                sellerField("Email", placeholder: "Email", text: $store.sellerEmail)
+                sellerField("Phone", placeholder: "Phone number", text: $store.sellerPhone)
+
+                Text("Long details automatically shrink to stay within the printable footer.")
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func sellerField(
+        _ label: String,
+        placeholder: String,
+        text: Binding<String>
+    ) -> some View {
+        HStack(spacing: 7) {
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 52, alignment: .leading)
+            TextField(placeholder, text: text)
+                .textFieldStyle(.roundedBorder)
+        }
+        .disabled(!store.showSellerInformation)
+        .opacity(store.showSellerInformation ? 1 : 0.48)
     }
 
     private var filterSummarySection: some View {

@@ -177,7 +177,7 @@ enum PDFCatalogueExporter {
         }
 
         let margin: CGFloat = 30
-        let footerHeight: CGFloat = 24
+        let footerHeight: CGFloat = settings.hasSellerInformation ? 40 : 24
         let bottomPadding: CGFloat = 11
         let gap = settings.spacing.gap
         let gridWidth = pageSize.width - margin * 2
@@ -203,15 +203,41 @@ enum PDFCatalogueExporter {
             )
         }
 
+        if settings.hasSellerInformation {
+            let sellerColor = colors.text.nsColor.withAlphaComponent(0.68)
+            if !settings.sellerPrimaryLine.isEmpty {
+                drawTextFitting(
+                    settings.sellerPrimaryLine,
+                    in: CGRect(x: margin, y: pageSize.height - 39, width: pageSize.width - margin * 2, height: 9),
+                    fontFamily: settings.font,
+                    maximumSize: 7.5,
+                    minimumSize: 4,
+                    weight: .semibold,
+                    color: sellerColor
+                )
+            }
+            if !settings.sellerContactLine.isEmpty {
+                drawTextFitting(
+                    settings.sellerContactLine,
+                    in: CGRect(x: margin, y: pageSize.height - 29, width: pageSize.width - margin * 2, height: 9),
+                    fontFamily: settings.font,
+                    maximumSize: 7,
+                    minimumSize: 4,
+                    weight: .regular,
+                    color: sellerColor
+                )
+            }
+        }
+
         drawText(
             "\(page.firstProductNumber)-\(page.lastProductNumber)",
-            in: CGRect(x: margin, y: pageSize.height - 18, width: 120, height: 11),
+            in: CGRect(x: margin, y: pageSize.height - 15, width: 120, height: 11),
             font: settings.font.nsFont(size: 8.5, weight: .medium),
             color: colors.text.nsColor.withAlphaComponent(0.55)
         )
         drawText(
             "\(pageNumber) / \(pageCount)",
-            in: CGRect(x: pageSize.width - margin - 120, y: pageSize.height - 18, width: 120, height: 11),
+            in: CGRect(x: pageSize.width - margin - 120, y: pageSize.height - 15, width: 120, height: 11),
             font: settings.font.nsFont(size: 8.5, weight: .medium),
             color: colors.text.nsColor.withAlphaComponent(0.55),
             alignment: .right
@@ -565,6 +591,34 @@ enum PDFCatalogueExporter {
                 .kern: tracking
             ]
         ).draw(with: rect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+    }
+
+    @MainActor
+    private static func drawTextFitting(
+        _ text: String,
+        in rect: CGRect,
+        fontFamily: CatalogueFontFamily,
+        maximumSize: CGFloat,
+        minimumSize: CGFloat,
+        weight: NSFont.Weight,
+        color: NSColor
+    ) {
+        var size = maximumSize
+        while size > minimumSize {
+            let font = fontFamily.nsFont(size: size, weight: weight)
+            if (text as NSString).size(withAttributes: [.font: font]).width <= rect.width {
+                break
+            }
+            size -= 0.25
+        }
+        drawText(
+            text,
+            in: rect,
+            font: fontFamily.nsFont(size: max(minimumSize, size), weight: weight),
+            color: color,
+            alignment: .center,
+            truncation: .byClipping
+        )
     }
 
     private static func aspectFit(_ source: CGSize, inside rect: CGRect) -> CGRect {

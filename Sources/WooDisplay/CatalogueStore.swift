@@ -35,6 +35,12 @@ final class CatalogueStore: ObservableObject {
     @Published var companyLogoData: Data?
     @Published var companyLogoName: String?
     @Published var companyLogoSize = 30.0
+    @Published var showSellerInformation = true
+    @Published var sellerCompany = "VeryShop Arts Inc"
+    @Published var sellerContactName = "Laura"
+    @Published var sellerWebsite = "veryshop.ca"
+    @Published var sellerEmail = "veryshop.ca@gmail.com"
+    @Published var sellerPhone = "604-601-1238"
 
     @Published var groupByCategory = true
     @Published var sortOrder: CatalogueSortOrder = .categoryThenName
@@ -97,6 +103,12 @@ final class CatalogueStore: ObservableObject {
                 : catalogueTitle,
             companyLogoData: companyLogoData,
             companyLogoSize: companyLogoSize,
+            showSellerInformation: showSellerInformation,
+            sellerCompany: sellerCompany,
+            sellerContactName: sellerContactName,
+            sellerWebsite: sellerWebsite,
+            sellerEmail: sellerEmail,
+            sellerPhone: sellerPhone,
             groupByCategory: groupByCategory,
             sortOrder: sortOrder,
             categoryOrder: categoryOrder,
