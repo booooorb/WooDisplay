@@ -364,7 +364,7 @@ private struct SettingsInspector: View {
     }
 
     private var sellerInformationSection: some View {
-        InspectorSection(title: "SELLER INFORMATION", subtitle: "Shown in a compact footer on every catalogue page.") {
+        InspectorSection(title: "SELLER INFORMATION", subtitle: "Shown clearly in the top-right header on every catalogue page.") {
             VStack(alignment: .leading, spacing: 8) {
                 ContentToggle("Show seller information", isOn: $store.showSellerInformation)
 
@@ -374,7 +374,7 @@ private struct SettingsInspector: View {
                 sellerField("Email", placeholder: "Email", text: $store.sellerEmail)
                 sellerField("Phone", placeholder: "Phone number", text: $store.sellerPhone)
 
-                Text("Long details automatically shrink to stay within the printable footer.")
+                Text("Long details automatically shrink to stay within the printable header.")
                     .font(.system(size: 9.5))
                     .foregroundStyle(.secondary)
             }

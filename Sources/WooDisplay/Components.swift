@@ -103,19 +103,11 @@ struct PDFPagePreview: View {
             Spacer(minLength: 0)
 
             VStack(spacing: 1) {
-                if settings.hasSellerInformation {
-                    if !settings.sellerPrimaryLine.isEmpty {
-                        Text(settings.sellerPrimaryLine)
-                            .font(settings.font.swiftUIFont(size: 7.5, weight: .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.45)
-                    }
-                    if !settings.sellerContactLine.isEmpty {
-                        Text(settings.sellerContactLine)
-                            .font(settings.font.swiftUIFont(size: 7, weight: .regular))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.45)
-                    }
+                if page.category != nil {
+                    Text(page.category.map { "[\($0.uppercased())] \(page.pageInCategory)/\(page.categoryPageCount)" } ?? "")
+                        .font(settings.font.swiftUIFont(size: 7.5, weight: .regular))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
 
                 HStack {
@@ -127,7 +119,7 @@ struct PDFPagePreview: View {
             }
             .foregroundStyle(colors.text.swiftUIColor.opacity(0.55))
             .padding(.horizontal, 30)
-            .frame(height: settings.hasSellerInformation ? 40 : 24)
+            .frame(height: page.category == nil ? 24 : 34)
         }
         .frame(width: pageSize.width, height: pageSize.height)
         .background(colors.page.swiftUIColor)
@@ -248,7 +240,7 @@ private struct PreviewPageHeader: View {
     }
 
     private var pageLabel: String {
-        category == nil ? "CATALOGUE" : "CATEGORY PAGE \(pageInCategory) OF \(categoryPageCount)"
+        category.map { "[\($0.uppercased())] \(pageInCategory)/\(categoryPageCount)" } ?? "CATALOGUE"
     }
 
     var body: some View {
@@ -258,7 +250,7 @@ private struct PreviewPageHeader: View {
                 companyLogo
                 titleStack(titleSize: 16.5)
                 Spacer()
-                pageBadge
+                sellerHeader
             }
             .foregroundStyle(colors.text.swiftUIColor)
             .overlay(alignment: .bottom) {
@@ -269,7 +261,7 @@ private struct PreviewPageHeader: View {
                 HStack {
                     companyLogo
                     Spacer()
-                    pageBadge
+                    sellerHeader
                 }
                 titleStack(titleSize: 17, alignment: .center)
                     .frame(maxWidth: 280)
@@ -283,7 +275,7 @@ private struct PreviewPageHeader: View {
                 companyLogo
                 titleStack(titleSize: 17.5)
                 Spacer()
-                pageBadge
+                sellerHeader
             }
             .foregroundStyle(colors.text.swiftUIColor)
             .overlay(alignment: .bottom) {
@@ -297,7 +289,7 @@ private struct PreviewPageHeader: View {
                     .frame(width: 10, height: 28)
                 titleStack(titleSize: 16)
                 Spacer()
-                pageBadge
+                sellerHeader
             }
             .foregroundStyle(colors.text.swiftUIColor)
         }
@@ -333,15 +325,24 @@ private struct PreviewPageHeader: View {
         }
     }
 
-    private var pageBadge: some View {
-        Text(pageLabel)
-            .font(.system(size: 6.5, weight: .bold))
-            .tracking(0.25)
-            .foregroundStyle(colors.accent.contrastingText.swiftUIColor)
-            .padding(.horizontal, 7)
-            .frame(height: 19)
-            .background(colors.accent.swiftUIColor)
-            .clipShape(Capsule())
+    @ViewBuilder
+    private var sellerHeader: some View {
+        if settings.hasSellerInformation {
+            VStack(alignment: .trailing, spacing: 1) {
+                if !settings.sellerPrimaryLine.isEmpty {
+                    Text(settings.sellerPrimaryLine)
+                        .font(settings.font.swiftUIFont(size: 9.5, weight: .semibold))
+                }
+                if !settings.sellerContactLine.isEmpty {
+                    Text(settings.sellerContactLine)
+                        .font(settings.font.swiftUIFont(size: 8, weight: .regular))
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .foregroundStyle(colors.text.swiftUIColor.opacity(0.95))
+            .frame(width: 215, alignment: .trailing)
+        }
     }
 }
 

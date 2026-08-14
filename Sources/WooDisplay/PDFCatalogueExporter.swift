@@ -177,7 +177,7 @@ enum PDFCatalogueExporter {
         }
 
         let margin: CGFloat = 30
-        let footerHeight: CGFloat = settings.hasSellerInformation ? 40 : 24
+        let footerHeight: CGFloat = page.category == nil ? 24 : 34
         let bottomPadding: CGFloat = 11
         let gap = settings.spacing.gap
         let gridWidth = pageSize.width - margin * 2
@@ -203,30 +203,17 @@ enum PDFCatalogueExporter {
             )
         }
 
-        if settings.hasSellerInformation {
-            let sellerColor = colors.text.nsColor.withAlphaComponent(0.68)
-            if !settings.sellerPrimaryLine.isEmpty {
-                drawTextFitting(
-                    settings.sellerPrimaryLine,
-                    in: CGRect(x: margin, y: pageSize.height - 39, width: pageSize.width - margin * 2, height: 9),
-                    fontFamily: settings.font,
-                    maximumSize: 7.5,
-                    minimumSize: 4,
-                    weight: .semibold,
-                    color: sellerColor
-                )
-            }
-            if !settings.sellerContactLine.isEmpty {
-                drawTextFitting(
-                    settings.sellerContactLine,
-                    in: CGRect(x: margin, y: pageSize.height - 29, width: pageSize.width - margin * 2, height: 9),
-                    fontFamily: settings.font,
-                    maximumSize: 7,
-                    minimumSize: 4,
-                    weight: .regular,
-                    color: sellerColor
-                )
-            }
+        if let category = page.category {
+            drawTextFitting(
+                "[\(category.uppercased())] \(page.pageInCategory)/\(page.categoryPageCount)",
+                in: CGRect(x: margin, y: pageSize.height - 29, width: pageSize.width - margin * 2, height: 10),
+                fontFamily: settings.font,
+                maximumSize: 7.5,
+                minimumSize: 5,
+                weight: .regular,
+                color: colors.text.nsColor.withAlphaComponent(0.58),
+                alignment: .center
+            )
         }
 
         drawText(
@@ -255,9 +242,6 @@ enum PDFCatalogueExporter {
         let accent = colors.accent.nsColor
         let title = page.category.map { "Category: \($0)" } ?? settings.catalogueTitle
         let eyebrow = page.category == nil ? "ALL PRODUCTS" : settings.catalogueTitle.uppercased()
-        let pageLabel = page.category == nil
-            ? "CATALOGUE"
-            : "CATEGORY PAGE \(page.pageInCategory) OF \(page.categoryPageCount)"
 
         let hasLogo = settings.companyLogoData.flatMap(NSImage.init(data:)) != nil
         let logoSize = CGFloat(min(48, max(18, settings.companyLogoSize)))
@@ -279,7 +263,7 @@ enum PDFCatalogueExporter {
                 color: textColor,
                 truncation: .byTruncatingTail
             )
-            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
+            drawSellerHeader(settings: settings, colors: colors)
             textColor.withAlphaComponent(0.14).setFill()
             NSBezierPath(rect: CGRect(x: 30, y: 57, width: 552, height: 0.8)).fill()
 
@@ -293,7 +277,7 @@ enum PDFCatalogueExporter {
                 alignment: .center,
                 truncation: .byTruncatingTail
             )
-            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
+            drawSellerHeader(settings: settings, colors: colors)
             accent.setFill()
             NSBezierPath(rect: CGRect(x: 282, y: 54, width: 48, height: 2)).fill()
 
@@ -306,7 +290,7 @@ enum PDFCatalogueExporter {
                 color: textColor,
                 truncation: .byTruncatingTail
             )
-            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
+            drawSellerHeader(settings: settings, colors: colors)
             accent.setFill()
             NSBezierPath(rect: CGRect(x: 30, y: 56, width: 552, height: 2)).fill()
 
@@ -323,7 +307,41 @@ enum PDFCatalogueExporter {
                 color: textColor,
                 truncation: .byTruncatingTail
             )
-            drawHeaderBadge(pageLabel, rect: CGRect(x: 455, y: 25, width: 127, height: 19), colors: colors)
+            drawSellerHeader(settings: settings, colors: colors)
+        }
+    }
+
+    @MainActor
+    private static func drawSellerHeader(
+        settings: CatalogueSettingsSnapshot,
+        colors: CatalogueColorTheme
+    ) {
+        guard settings.hasSellerInformation else { return }
+        let rect = CGRect(x: 367, y: 16, width: 215, height: 34)
+        let color = colors.text.nsColor.withAlphaComponent(0.95)
+        if !settings.sellerPrimaryLine.isEmpty {
+            drawTextFitting(
+                settings.sellerPrimaryLine,
+                in: CGRect(x: rect.minX, y: rect.minY + 4, width: rect.width, height: 11),
+                fontFamily: settings.font,
+                maximumSize: 9.5,
+                minimumSize: 4.5,
+                weight: .semibold,
+                color: color,
+                alignment: .right
+            )
+        }
+        if !settings.sellerContactLine.isEmpty {
+            drawTextFitting(
+                settings.sellerContactLine,
+                in: CGRect(x: rect.minX, y: rect.minY + 16, width: rect.width, height: 10),
+                fontFamily: settings.font,
+                maximumSize: 8,
+                minimumSize: 4,
+                weight: .regular,
+                color: color,
+                alignment: .right
+            )
         }
     }
 
@@ -601,7 +619,8 @@ enum PDFCatalogueExporter {
         maximumSize: CGFloat,
         minimumSize: CGFloat,
         weight: NSFont.Weight,
-        color: NSColor
+        color: NSColor,
+        alignment: NSTextAlignment = .center
     ) {
         var size = maximumSize
         while size > minimumSize {
@@ -616,7 +635,7 @@ enum PDFCatalogueExporter {
             in: rect,
             font: fontFamily.nsFont(size: max(minimumSize, size), weight: weight),
             color: color,
-            alignment: .center,
+            alignment: alignment,
             truncation: .byClipping
         )
     }
